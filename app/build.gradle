@@ -1,0 +1,39 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'dev.mwkov.spoilershield'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'dev.mwkov.spoilershield'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        // Fixed personal key committed in this private repo, so every build can
+        // install over the previous one without uninstalling.
+        release {
+            storeFile file('spoilershield.jks')
+            storePassword 'spoilershield'
+            keyAlias 'spoilershield'
+            keyPassword 'spoilershield'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

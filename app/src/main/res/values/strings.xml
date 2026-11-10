@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spoiler Shield</string>
+    <string name="service_description">Reads the text on your screen and covers anything that matches your spoiler keywords. Everything stays on your phone — nothing is saved or sent.</string>
+</resources>
