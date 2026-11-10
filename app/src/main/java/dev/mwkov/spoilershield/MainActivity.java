@@ -97,6 +97,13 @@ public class MainActivity extends Activity {
         switches.addView(card);
         switches.addView(text("Covers the whole video/post/message the text is in. "
                 + "Off = only the matching text gets covered.", 12, MUTED));
+        Switch blackout = toggle("Black out while scrolling", Prefs.scrollBlackout(this));
+        blackout.setOnCheckedChangeListener((b, on) ->
+                Prefs.get(this).edit().putBoolean(Prefs.KEY_SCROLL_BLACKOUT, on).apply());
+        switches.addView(blackout);
+        switches.addView(text("Most reliable. When you scroll a page that has spoilers on it, the "
+                + "whole scrolling area is covered until you stop — then only the spoilers stay "
+                + "covered. Pages without spoilers scroll normally.", 12, MUTED));
 
         // --- Ignored apps
         LinearLayout ign = card(col);
