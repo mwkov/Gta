@@ -1,6 +1,16 @@
 package dev.mwkov.spoilershield;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Typeface;
@@ -31,6 +41,7 @@ public class MainActivity extends Activity {
 
     private TextView status;
     private Button openSettings;
+    private TextView ignoredSummary;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +95,20 @@ public class MainActivity extends Activity {
         card.setOnCheckedChangeListener((b, on) ->
                 Prefs.get(this).edit().putBoolean(Prefs.KEY_COVER_CARD, on).apply());
         switches.addView(card);
-        switches.addView(text("Off = only the matching text gets covered.", 12, MUTED));
+        switches.addView(text("Covers the whole video/post/message the text is in. "
+                + "Off = only the matching text gets covered.", 12, MUTED));
+
+        // --- Ignored apps
+        LinearLayout ign = card(col);
+        TextView ignTitle = text("Ignored apps", 15, TEXT);
+        ignTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        ign.addView(ignTitle);
+        ignoredSummary = text("", 13, MUTED);
+        ign.addView(ignoredSummary);
+        Button pick = button("Choose apps to ignore");
+        pick.setOnClickListener(v -> showAppPicker());
+        ign.addView(pick, matchWrap(dp(10)));
+        refreshIgnoredSummary();
 
         // --- Keywords
         LinearLayout kw = card(col);
@@ -149,6 +173,62 @@ public class MainActivity extends Activity {
         status.setText(on ? "● Accessibility service is ON" : "● Accessibility service is OFF");
         status.setTextColor(on ? OK : BAD);
         openSettings.setText(on ? "Accessibility settings" : "Turn it on in Accessibility settings");
+    }
+
+    private void refreshIgnoredSummary() {
+        java.util.Set<String> ign = Prefs.ignoredApps(this);
+        if (ign.isEmpty()) {
+            ignoredSummary.setText("None — the shield works in every app.");
+            return;
+        }
+        PackageManager pm = getPackageManager();
+        List<String> names = new ArrayList<>();
+        for (String p : ign) {
+            try {
+                names.add(pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString());
+            } catch (PackageManager.NameNotFoundException e) {
+                names.add(p);
+            }
+        }
+        Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+        ignoredSummary.setText("Never covered in: " + String.join(", ", names));
+    }
+
+    private void showAppPicker() {
+        PackageManager pm = getPackageManager();
+        Intent launcher = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> found = pm.queryIntentActivities(launcher, 0);
+        Map<String, String> apps = new TreeMap<>(String.CASE_INSENSITIVE_ORDER); // label -> pkg
+        for (ResolveInfo ri : found) {
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(getPackageName())) continue;
+            apps.put(ri.loadLabel(pm).toString() + "\u0000" + pkg, pkg);
+        }
+        int n = apps.size();
+        String[] labels = new String[n];
+        String[] pkgs = new String[n];
+        boolean[] checked = new boolean[n];
+        java.util.Set<String> current = Prefs.ignoredApps(this);
+        int i = 0;
+        for (Map.Entry<String, String> e : apps.entrySet()) {
+            labels[i] = e.getKey().substring(0, e.getKey().indexOf('\u0000'));
+            pkgs[i] = e.getValue();
+            checked[i] = current.contains(pkgs[i]);
+            i++;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Don't cover anything in…")
+                .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which] = isChecked)
+                .setPositiveButton("Save", (d, w) -> {
+                    java.util.Set<String> next = new java.util.HashSet<>();
+                    for (int k = 0; k < n; k++) if (checked[k]) next.add(pkgs[k]);
+                    // Keep ignored apps that aren't in the launcher list (e.g. uninstalled ones).
+                    for (String p : current) if (!apps.containsValue(p)) next.add(p);
+                    Prefs.setIgnoredApps(this, next);
+                    refreshIgnoredSummary();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private boolean serviceEnabled() {

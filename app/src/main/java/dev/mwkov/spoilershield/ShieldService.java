@@ -27,7 +27,7 @@ public class ShieldService extends AccessibilityService {
     private static final long RECHECK_MS = 600;     // re-verify while covers are showing
     private static final int MAX_DEPTH = 60;
     private static final int MAX_CLIMB = 8;
-    private static final float CARD_MAX_HEIGHT = 0.6f;  // a "card" is at most 60% of the screen
+    private static final float CARD_MAX_HEIGHT = 0.5f;  // a list item is at most half the screen
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WindowManager wm;
@@ -37,6 +37,7 @@ public class ShieldService extends AccessibilityService {
     private volatile Pattern pattern;
     private volatile boolean enabled;
     private volatile boolean coverCard;
+    private volatile java.util.Set<String> ignored = new java.util.HashSet<>();
     private boolean scanPending;
 
     private final Rect screen = new Rect();
@@ -70,6 +71,7 @@ public class ShieldService extends AccessibilityService {
         enabled = Prefs.enabled(this);
         coverCard = Prefs.coverCard(this);
         pattern = Prefs.compile(Prefs.pattern(this));
+        ignored = Prefs.ignoredApps(this);
     }
 
     private void addOverlay() {
@@ -151,8 +153,11 @@ public class ShieldService extends AccessibilityService {
     private void scanRoot(AccessibilityNodeInfo root, Pattern p, List<Rect> out) {
         if (root == null) return;
         CharSequence pkg = root.getPackageName();
-        // Never cover our own settings screen, so the keyword list stays editable.
-        if (pkg != null && getPackageName().contentEquals(pkg)) return;
+        if (pkg != null) {
+            String p2 = pkg.toString();
+            // Never cover our own settings screen, so the keyword list stays editable.
+            if (p2.equals(getPackageName()) || ignored.contains(p2)) return;
+        }
         walk(root, p, out, 0);
     }
 
@@ -185,24 +190,34 @@ public class ShieldService extends AccessibilityService {
     }
 
     /**
-     * The matching text's own bounds, or (with "cover whole card") the biggest parent that is
-     * still a single item, e.g. a YouTube video card including its thumbnail.
+     * The matching text's own bounds. With "cover whole item" on, and only when the text sits
+     * inside a list item (a video card, a message, a post), the whole item is covered so the
+     * thumbnail goes too. Headers, toolbars and other non-list text only get the text covered.
      */
     private Rect coverFor(AccessibilityNodeInfo node) {
         Rect r = new Rect();
         node.getBoundsInScreen(r);
         if (coverCard && !screen.isEmpty()) {
             int maxH = (int) (screen.height() * CARD_MAX_HEIGHT);
-            AccessibilityNodeInfo parent = node.getParent();
-            for (int i = 0; parent != null && i < MAX_CLIMB; i++) {
-                parent.getBoundsInScreen(tmp);
-                if (tmp.isEmpty() || tmp.height() > maxH) break;
-                r.union(tmp);
-                parent = parent.getParent();
+            AccessibilityNodeInfo cur = node;
+            for (int i = 0; i < MAX_CLIMB; i++) {
+                AccessibilityNodeInfo parent = cur.getParent();
+                if (parent == null) break;
+                if (isList(parent)) {
+                    // `cur` is one item of a list: cover it if it's a sensible size.
+                    cur.getBoundsInScreen(tmp);
+                    if (!tmp.isEmpty() && tmp.height() <= maxH) r.union(tmp);
+                    break;
+                }
+                cur = parent;
             }
         }
         if (!screen.isEmpty() && !r.intersect(screen)) r.setEmpty();
         return r;
+    }
+
+    private static boolean isList(AccessibilityNodeInfo n) {
+        return n.isScrollable() || n.getCollectionInfo() != null;
     }
 
     private void updateScreenBounds() {

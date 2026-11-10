@@ -3,6 +3,8 @@ package dev.mwkov.spoilershield;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -12,6 +14,7 @@ final class Prefs {
     static final String KEY_ENABLED = "enabled";
     static final String KEY_COVER_CARD = "cover_card";
     static final String KEY_PATTERN = "pattern";
+    static final String KEY_IGNORED = "ignored_apps";
 
     static final String DEFAULT_PATTERN =
             "gta|grand theft auto|rockstar|leonida|vice city|port gellhorn|grassrivers|mount kalaga"
@@ -34,6 +37,20 @@ final class Prefs {
 
     static String pattern(Context c) {
         return get(c).getString(KEY_PATTERN, DEFAULT_PATTERN);
+    }
+
+    /** Apps the shield leaves alone. Claude is excluded by default (you talk about GTA there). */
+    static Set<String> ignoredApps(Context c) {
+        Set<String> s = get(c).getStringSet(KEY_IGNORED, null);
+        if (s == null) {
+            s = new HashSet<>();
+            s.add("com.anthropic.claude");
+        }
+        return new HashSet<>(s);
+    }
+
+    static void setIgnoredApps(Context c, Set<String> apps) {
+        get(c).edit().putStringSet(KEY_IGNORED, new HashSet<>(apps)).apply();
     }
 
     /** Case-insensitive for both Latin and Cyrillic. Returns null if the regex is invalid or empty. */
