@@ -105,6 +105,13 @@ public class MainActivity extends Activity {
                 + "covered until it has been checked (a fraction of a second). Faster scroll = "
                 + "taller strip.", 12, MUTED));
 
+        Switch dbg = toggle("Show debug numbers", Prefs.debug(this));
+        dbg.setOnCheckedChangeListener((b, on) ->
+                Prefs.get(this).edit().putBoolean(Prefs.KEY_DEBUG, on).apply());
+        switches.addView(dbg);
+        switches.addView(text("Green text at the top of the screen with read speed and scroll "
+                + "data. Turn on when recording a video for tuning.", 12, MUTED));
+
         // --- Ignored apps
         LinearLayout ign = card(col);
         TextView ignTitle = text("Ignored apps", 15, TEXT);

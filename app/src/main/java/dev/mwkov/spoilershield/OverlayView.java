@@ -21,11 +21,20 @@ final class OverlayView extends View {
     private final int[] loc = new int[2];
     private final RectF rf = new RectF();
     private final float radius;
+    private final Paint dbgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dbgBg = new Paint();
+    private String debugText;
+    private final float density;
 
     OverlayView(Context c) {
         super(c);
         float d = c.getResources().getDisplayMetrics().density;
         radius = 12 * d;
+        density = d;
+        dbgPaint.setColor(0xFF7CFFB2);
+        dbgPaint.setTextSize(11 * d);
+        dbgPaint.setTypeface(android.graphics.Typeface.MONOSPACE);
+        dbgBg.setColor(0xCC000000);
         fill.setColor(0xFF17121F);
         border.setColor(0xFF9B6BFF);
         border.setStyle(Paint.Style.STROKE);
@@ -46,8 +55,23 @@ final class OverlayView extends View {
         invalidate();
     }
 
+    void setDebug(String text) {
+        if (text == null ? debugText == null : text.equals(debugText)) return;
+        debugText = text;
+        invalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
+        if (debugText != null) {
+            String[] lines = debugText.split("\n");
+            float lh = dbgPaint.getTextSize() * 1.3f;
+            float top = 34 * density;
+            canvas.drawRect(0, top, getWidth(), top + lh * lines.length + 6 * density, dbgBg);
+            for (int i = 0; i < lines.length; i++) {
+                canvas.drawText(lines[i], 6 * density, top + lh * (i + 1), dbgPaint);
+            }
+        }
         if (labeled.isEmpty() && plain.isEmpty()) return;
         getLocationOnScreen(loc);
         for (Rect r : plain) {

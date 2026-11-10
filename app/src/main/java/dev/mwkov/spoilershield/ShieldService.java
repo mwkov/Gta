@@ -61,6 +61,7 @@ public class ShieldService extends AccessibilityService {
     private volatile boolean enabled;
     private volatile boolean coverCard;
     private volatile boolean edgeCurtain;
+    private volatile boolean debug;
     private volatile Set<String> ignored = new HashSet<>();
 
     // Background read state
@@ -68,6 +69,14 @@ public class ShieldService extends AccessibilityService {
     private final AtomicLong shiftSeq = new AtomicLong();
     private final Rect scanScreen = new Rect();   // scan thread only
     private final Rect tmp = new Rect();          // scan thread only
+    private long scanStartMs;                     // scan thread only
+    private int scanNodes;                        // scan thread only
+    private static final long OFFSCREEN_BUDGET_MS = 80;
+
+    // Debug numbers (main thread)
+    private String dbgScan = "scan: -";
+    private String dbgScroll = "scroll: no events yet";
+    private String lastPkg = "";
 
     // Main-thread state
     private List<Cover> covers = new ArrayList<>();
@@ -82,10 +91,12 @@ public class ShieldService extends AccessibilityService {
     private static final class Cover {
         final RectF r;
         final Rect clip;   // bounds of the scrolling area it lives in, or null if fixed
+        final long seq;    // movement counter when this position was read from the app
 
-        Cover(RectF r, Rect clip) {
+        Cover(RectF r, Rect clip, long seq) {
             this.r = r;
             this.clip = clip;
+            this.seq = seq;
         }
     }
 
@@ -147,6 +158,7 @@ public class ShieldService extends AccessibilityService {
         enabled = Prefs.enabled(this);
         coverCard = Prefs.coverCard(this);
         edgeCurtain = Prefs.scrollBlackout(this);
+        debug = Prefs.debug(this);
         pattern = Prefs.compile(Prefs.pattern(this));
         ignored = Prefs.ignoredApps(this);
     }
@@ -192,6 +204,12 @@ public class ShieldService extends AccessibilityService {
             trackers.clear();
             shifts.clear();
             armed = false;
+            CharSequence pk = event.getPackageName();
+            String pkg = pk == null ? "" : pk.toString();
+            if (!pkg.equals(lastPkg)) {
+                lastPkg = pkg;
+                covers = new ArrayList<>();   // different app: old covers mean nothing
+            }
             render();
         }
         scheduleScan(THROTTLE_MS);
@@ -226,6 +244,13 @@ public class ShieldService extends AccessibilityService {
         }
         t.lastSX = sx;
         t.lastSY = sy;
+        if (debug) {
+            CharSequence cn = src.getClassName();
+            String cls = cn == null ? "?" : cn.toString();
+            cls = cls.substring(cls.lastIndexOf('.') + 1);
+            dbgScroll = "scroll: d=(" + dx + "," + dy + ") pos=(" + sx + "," + sy + ") "
+                    + cls + " h=" + container.height();
+        }
         if (dx == 0 && dy == 0) return;
 
         long now = SystemClock.uptimeMillis();
@@ -336,6 +361,8 @@ public class ShieldService extends AccessibilityService {
     private void backgroundScan() {
         scanPending.set(false);
         final long startSeq = shiftSeq.get();
+        scanStartMs = SystemClock.uptimeMillis();
+        scanNodes = 0;
         final List<Cover> found = new ArrayList<>();
         Pattern p = pattern;
         if (enabled && p != null) {
@@ -362,7 +389,12 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
-        main.post(() -> applyScan(found, startSeq));
+        final long took = SystemClock.uptimeMillis() - scanStartMs;
+        final int nodes = scanNodes;
+        main.post(() -> {
+            dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits";
+            applyScan(found, startSeq);
+        });
     }
 
     private static AccessibilityNodeInfo rootOf(AccessibilityWindowInfo w) {
@@ -394,9 +426,12 @@ public class ShieldService extends AccessibilityService {
     private void walk(AccessibilityNodeInfo node, Pattern p, List<Cover> out, int depth,
             Rect container) {
         if (node == null || depth > MAX_DEPTH) return;
+        scanNodes++;
         try {
             boolean visible = node.isVisibleToUser();
             if (!visible) {
+                // Off-screen pre-detection is a bonus: skip it when the read is running long.
+                if (SystemClock.uptimeMillis() - scanStartMs > OFFSCREEN_BUDGET_MS) return;
                 // Keep content that is merely scrolled off the top/bottom of its scrolling
                 // area (web pages expose this), so its cover is ready before it scrolls in.
                 if (container == null) return;
@@ -404,7 +439,7 @@ public class ShieldService extends AccessibilityService {
                 if (tmp.isEmpty()) return;
                 if (Rect.intersects(tmp, container)) return;          // hidden, not scrolled off
                 if (tmp.right <= container.left || tmp.left >= container.right) return;
-                int reach = container.height() * 3 / 2;
+                int reach = container.height();
                 if (tmp.bottom < container.top - reach || tmp.top > container.bottom + reach) {
                     return;
                 }
@@ -447,12 +482,16 @@ public class ShieldService extends AccessibilityService {
      * thumbnail goes too. Text outside scrolling areas (toolbars, headers) is covered alone.
      */
     private Cover coverFor(AccessibilityNodeInfo node, Rect container) {
+        // Positions we walked past may be a batch old. Re-read this one now and remember the
+        // movement counter, so later only movement AFTER this instant is added on top.
+        final long seq = shiftSeq.get();
+        if (container != null && !node.refresh()) return null;
         Rect r = new Rect();
         node.getBoundsInScreen(r);
         if (r.isEmpty()) return null;
         if (container == null) {
             if (!scanScreen.isEmpty() && !r.intersect(scanScreen)) return null;
-            return new Cover(new RectF(r), null);
+            return new Cover(new RectF(r), null, seq);
         }
         if (coverCard && !scanScreen.isEmpty()) {
             int maxH = (int) (scanScreen.height() * ITEM_MAX_HEIGHT);
@@ -463,13 +502,14 @@ public class ShieldService extends AccessibilityService {
                         || parent.getCollectionInfo() != null) {
                     break;   // `cur` is a direct item of the list / scrolling area
                 }
+                parent.refresh();
                 parent.getBoundsInScreen(tmp);
                 if (tmp.isEmpty() || tmp.height() > maxH) break;
                 r.union(tmp);
                 cur = parent;
             }
         }
-        return new Cover(new RectF(r), new Rect(container));
+        return new Cover(new RectF(r), new Rect(container), seq);
     }
 
     private void readScreenBounds(Rect out) {
@@ -489,7 +529,9 @@ public class ShieldService extends AccessibilityService {
         // Content may have moved while we were reading: bring the results up to date.
         for (Shift s : shifts) {
             if (s.seq <= startSeq) continue;
-            for (Cover c : found) if (movesWith(c.clip, s.t.c)) c.r.offset(s.dx, s.dy);
+            for (Cover c : found) {
+                if (s.seq > c.seq && movesWith(c.clip, s.t.c)) c.r.offset(s.dx, s.dy);
+            }
         }
         for (Iterator<Shift> it = shifts.iterator(); it.hasNext(); ) {
             if (it.next().seq <= startSeq) it.remove();
@@ -561,6 +603,21 @@ public class ShieldService extends AccessibilityService {
             }
         }
         overlay.setFrame(labeled, plain);
+        if (debug && enabled) {
+            int active = 0;
+            float v = 0;
+            for (Tracker t : trackers) {
+                if (t.active) {
+                    active++;
+                    v = t.vy;
+                }
+            }
+            overlay.setDebug(dbgScan + "\n" + dbgScroll + "\ntracking " + active + "/"
+                    + trackers.size() + " v=" + Math.round(v * 1000) + "px/s armed="
+                    + (armed ? "Y" : "N"));
+        } else {
+            overlay.setDebug(null);
+        }
     }
 
     @Override
