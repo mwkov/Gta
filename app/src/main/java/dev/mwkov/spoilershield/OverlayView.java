@@ -13,7 +13,8 @@ import java.util.List;
 /** Full-screen, click-through layer that paints solid covers over matched spots. */
 final class OverlayView extends View {
 
-    private final List<Rect> covers = new ArrayList<>();
+    private final List<Rect> labeled = new ArrayList<>();
+    private final List<Rect> plain = new ArrayList<>();
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -35,18 +36,25 @@ final class OverlayView extends View {
         label.setFakeBoldText(true);
     }
 
-    void setCovers(List<Rect> next) {
-        if (next.equals(covers)) return;
-        covers.clear();
-        covers.addAll(next);
+    /** @param nextLabeled spoiler covers; @param nextPlain edge curtains (no border/label) */
+    void setFrame(List<Rect> nextLabeled, List<Rect> nextPlain) {
+        if (nextLabeled.equals(labeled) && nextPlain.equals(plain)) return;
+        labeled.clear();
+        labeled.addAll(nextLabeled);
+        plain.clear();
+        plain.addAll(nextPlain);
         invalidate();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (covers.isEmpty()) return;
+        if (labeled.isEmpty() && plain.isEmpty()) return;
         getLocationOnScreen(loc);
-        for (Rect r : covers) {
+        for (Rect r : plain) {
+            canvas.drawRect(r.left - loc[0], r.top - loc[1], r.right - loc[0], r.bottom - loc[1],
+                    fill);
+        }
+        for (Rect r : labeled) {
             rf.set(r.left - loc[0], r.top - loc[1], r.right - loc[0], r.bottom - loc[1]);
             canvas.drawRoundRect(rf, radius, radius, fill);
             canvas.drawRoundRect(rf, radius, radius, border);
