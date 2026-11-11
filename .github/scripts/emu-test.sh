@@ -45,6 +45,18 @@ adb shell wm size > "$OUT/screen.txt"; adb shell wm density >> "$OUT/screen.txt"
 adb logcat -c
 adb logcat -v raw -s ShieldTrace:I ShieldHarness:I > "$OUT/log.txt" &
 LOGPID=$!
+# Everything else that matters for diagnosis: crashes, ANRs, process kills, a11y binding.
+adb logcat -v threadtime -b main,system,crash '*:W' ActivityManager:I AccessibilityManagerService:V ShieldTrace:S ShieldHarness:S H:S > "$OUT/full.txt" &
+FULLPID=$!
+health() {   # label: is the service process alive, what are its threads doing
+  P=$(adb shell pidof $PKG | tr -d '\r')
+  echo "== $1 pid=[$P] $(adb shell cat /proc/uptime)" >> "$OUT/health.txt"
+  if [ -n "$P" ]; then
+    timeout 20 adb shell debuggerd -j $P 2>/dev/null | grep -A14 '^"main"\|^"shield-' >> "$OUT/health.txt"
+  fi
+  adb shell dumpsys accessibility | grep -i -A1 "Bound services\|Crashed services\|Enabled services" >> "$OUT/health.txt"
+}
+health start
 
 mark() { adb shell log -p i -t ShieldHarness "M $1"; }
 
@@ -71,18 +83,20 @@ run() {   # name activity
   sleep 6                                  # first read of the screen
   clear_dialogs
   adb shell dumpsys window | grep -m3 "mCurrentFocus\|isn't responding" > "$OUT/$1-focus.txt"
+  health "$1 shown"
   adb shell screenrecord --bit-rate 8000000 --time-limit 120 /sdcard/$1.mp4 &
   REC=$!
   sleep 1
   gestures
   adb shell pkill -INT screenrecord; sleep 3; kill $REC 2>/dev/null
   timeout 60 adb pull /sdcard/$1.mp4 "$OUT/$1.mp4"
+  health "$1 done"
   adb shell am force-stop dev.mwkov.shieldtest
 }
 
 run list ListActivity
 run web WebActivity
 
-sleep 2; kill $LOGPID
+sleep 2; kill $LOGPID $FULLPID
 adb shell screencap -p /sdcard/last.png; adb pull /sdcard/last.png "$OUT/last.png"
 wc -l "$OUT/log.txt"
