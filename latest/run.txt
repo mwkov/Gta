@@ -11,19 +11,25 @@ Success
 restarting adbd as root
 + sleep 4
 + timeout 60 adb wait-for-device
++ adb shell settings put global hide_error_dialogs 1
++ adb shell settings put global anr_show_background 0
++ clear_dialogs
++ adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS
++ adb shell dumpsys window
++ grep -q 'Application Not Responding\|isn'\''t responding'
 + adb shell am start -W -n dev.mwkov.spoilershield/.MainActivity
 Starting: Intent { cmp=dev.mwkov.spoilershield/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.spoilershield/.MainActivity
-TotalTime: 3679
-WaitTime: 3908
+TotalTime: 2629
+WaitTime: 2642
 Complete
 + sleep 3
 + adb shell am force-stop dev.mwkov.spoilershield
 + cat
 + adb push /home/runner/work/_temp/results/shield.xml /data/local/tmp/shield.xml
-/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 2.8 MB/s (298 bytes in 0.000s)
+/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 4.1 MB/s (298 bytes in 0.000s)
 + adb shell 'mkdir -p /data/data/dev.mwkov.spoilershield/shared_prefs && cp /data/local/tmp/shield.xml /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && U=$(stat -c %u /data/data/dev.mwkov.spoilershield) && chown -R $U:$U /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 771 /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 660 /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && restorecon -R /data/data/dev.mwkov.spoilershield/shared_prefs'
 SELinux: Loaded file context from:
 		/system/etc/selinux/plat_file_contexts
@@ -39,23 +45,33 @@ SELinux: Loaded file context from:
 + adb shell wm size
 + adb shell wm density
 + adb logcat -c
-+ LOGPID=3527
++ LOGPID=3567
 + run list ListActivity
 + mark 'screen list'
 + adb shell log -p i -t ShieldHarness 'M screen list'
 + adb logcat -v raw -s ShieldTrace:I ShieldHarness:I
++ clear_dialogs
++ adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS
++ adb shell dumpsys window
++ grep -q 'Application Not Responding\|isn'\''t responding'
 + adb shell am start -W -n dev.mwkov.shieldtest/.ListActivity
 Starting: Intent { cmp=dev.mwkov.shieldtest/.ListActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.ListActivity
-TotalTime: 4475
-WaitTime: 4852
+TotalTime: 5071
+WaitTime: 5105
 Complete
 + sleep 6
-+ REC=3569
-+ sleep 1
++ clear_dialogs
++ adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS
++ adb shell dumpsys window
++ grep -q 'Application Not Responding\|isn'\''t responding'
++ adb shell dumpsys window
++ grep -m3 'mCurrentFocus\|isn'\''t responding'
 + adb shell screenrecord --bit-rate 8000000 --time-limit 120 /sdcard/list.mp4
++ REC=3697
++ sleep 1
 + gestures
 + mark slow_drag
 + adb shell log -p i -t ShieldHarness 'M slow_drag'
@@ -124,23 +140,33 @@ Complete
 + adb shell log -p i -t ShieldHarness 'M end'
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 3569
++ kill 3697
 + timeout 60 adb pull /sdcard/list.mp4 /home/runner/work/_temp/results/list.mp4
-/sdcard/list.mp4: 1 file pulled, 0 skipped. 46.7 MB/s (188255 bytes in 0.004s)
+/sdcard/list.mp4: 1 file pulled, 0 skipped. 89.2 MB/s (3479583 bytes in 0.037s)
 + adb shell am force-stop dev.mwkov.shieldtest
 + run web WebActivity
 + mark 'screen web'
 + adb shell log -p i -t ShieldHarness 'M screen web'
++ clear_dialogs
++ adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS
++ adb shell dumpsys window
++ grep -q 'Application Not Responding\|isn'\''t responding'
 + adb shell am start -W -n dev.mwkov.shieldtest/.WebActivity
 Starting: Intent { cmp=dev.mwkov.shieldtest/.WebActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.WebActivity
-TotalTime: 3593
-WaitTime: 3637
+TotalTime: 5734
+WaitTime: 5955
 Complete
 + sleep 6
-+ REC=3721
++ clear_dialogs
++ adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS
++ adb shell dumpsys window
++ grep -q 'Application Not Responding\|isn'\''t responding'
++ adb shell dumpsys window
++ grep -m3 'mCurrentFocus\|isn'\''t responding'
++ REC=3837
 + sleep 1
 + adb shell screenrecord --bit-rate 8000000 --time-limit 120 /sdcard/web.mp4
 + gestures
@@ -211,14 +237,14 @@ Complete
 + adb shell log -p i -t ShieldHarness 'M end'
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 3721
++ kill 3837
 + timeout 60 adb pull /sdcard/web.mp4 /home/runner/work/_temp/results/web.mp4
-/sdcard/web.mp4: 1 file pulled, 0 skipped. 90.3 MB/s (394114 bytes in 0.004s)
+/sdcard/web.mp4: 1 file pulled, 0 skipped. 91.7 MB/s (3479969 bytes in 0.036s)
 + adb shell am force-stop dev.mwkov.shieldtest
 + sleep 2
-+ kill 3527
++ kill 3567
 + adb shell screencap -p /sdcard/last.png
 + adb pull /sdcard/last.png /home/runner/work/_temp/results/last.png
-/sdcard/last.png: 1 file pulled, 0 skipped. 10.8 MB/s (540265 bytes in 0.048s)
+/sdcard/last.png: 1 file pulled, 0 skipped. 14.0 MB/s (1377916 bytes in 0.094s)
 + wc -l /home/runner/work/_temp/results/log.txt
-3951 /home/runner/work/_temp/results/log.txt
+3928 /home/runner/work/_temp/results/log.txt
