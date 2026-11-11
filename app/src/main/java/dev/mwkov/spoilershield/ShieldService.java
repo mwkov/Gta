@@ -49,7 +49,7 @@ public class ShieldService extends AccessibilityService {
     private static final long STOP_MS = 120;         // no scroll event for this long = stopped
     private static final int MAX_DEPTH = 150;
     private static final int MAX_CLIMB = 10;
-    private static final float ITEM_MAX_HEIGHT = 0.4f;  // a covered "item" is at most 40% of screen
+    private static final float ITEM_MAX_HEIGHT = 0.3f;  // a covered "item" is at most 40% of screen
     private static final int MAX_SHIFTS = 4000;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -140,8 +140,7 @@ public class ShieldService extends AccessibilityService {
 
         boolean moves(Cover c) {
             if (t != null) return eventMoves(c, t.c);
-            float cy = c.r.centerY();
-            return (c.ocr || c.clip != null) && cy >= top && cy <= bottom;
+            return inBand(c, top, bottom);
         }
     }
 
@@ -234,7 +233,7 @@ public class ShieldService extends AccessibilityService {
         } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // New screen / app: tracking state from the old one no longer applies.
             trackers.clear();
-            shifts.clear();
+            scrollArea = null;
             deepAreas = new ArrayList<>();
             forceDeep = true;
             armed = false;
@@ -289,6 +288,11 @@ public class ShieldService extends AccessibilityService {
         }
         if (dx == 0 && dy == 0) return;
 
+        if (dy != 0 && Math.abs(dy) >= Math.abs(dx) && !screenMain.isEmpty()
+                && container.height() > screenMain.height() / 4) {
+            scrollArea = new Rect(container);
+            if (!scrollArea.intersect(screenMain)) scrollArea = null;
+        }
         long now = SystemClock.uptimeMillis();
         if (Math.abs(dy) > container.height() * 3 || Math.abs(dx) > container.width() * 3) {
             // A jump (e.g. "scroll to top"), not a scroll: drop tracking, let the read fix it.
@@ -349,6 +353,16 @@ public class ShieldService extends AccessibilityService {
         if (w <= 0 || h <= 0) return 0;
         long area = (long) a.width() * a.height();
         return area <= 0 ? 0 : (float) ((double) w * h / area);
+    }
+
+    /** Image tracking: does a cover ride along when the band top..bottom scrolls? */
+    private static boolean inBand(Cover c, float top, float bottom) {
+        if (c.ocr) {
+            // Once it is part of the scrolling content it stays so, even half off the edge.
+            float cy = c.r.centerY();
+            return c.inRegion || (cy >= top && cy <= bottom);
+        }
+        return c.clip != null && c.r.bottom > top && c.r.top < bottom;
     }
 
     /** Scroll-event tracking: does a cover belong to the scrolling area `area`? */
@@ -585,6 +599,7 @@ public class ShieldService extends AccessibilityService {
             return new Cover(new RectF(r), null, seq);
         }
         final int oldLeft = r.left, oldTop = r.top;
+        final long textArea = Math.max(1L, (long) r.width() * r.height());
         if (coverCard && !scanScreen.isEmpty()) {
             int maxH = (int) (scanScreen.height() * ITEM_MAX_HEIGHT);
             AccessibilityNodeInfo cur = node;
@@ -596,6 +611,8 @@ public class ShieldService extends AccessibilityService {
                 }
                 parent.getBoundsInScreen(tmp);
                 if (tmp.isEmpty() || tmp.height() > maxH) break;
+                // An "item" is the text plus its picture, not a whole section of the page.
+                if ((long) tmp.width() * tmp.height() > 8L * textArea) break;
                 r.union(tmp);
                 cur = parent;
             }
@@ -648,6 +665,7 @@ public class ShieldService extends AccessibilityService {
     private long lastImgTsNs, lastRigidMs;
     private float pxV;                            // content speed, screen px per ms (+ = down)
     private int regTop = -1, regBot = -1;         // frame rows that scroll (remembered)
+    private Rect scrollArea;                      // the scrolling list's bounds, from the app
     private boolean[] dirty;                      // frame rows not read yet
     private List<Rect> lastDrawn = new ArrayList<>();
     private int[] maskBuf = new int[4 * 80];
@@ -726,7 +744,12 @@ public class ShieldService extends AccessibilityService {
         lastKind = est.kind;
 
         if (est.kind == MotionEstimator.RIGID) {
-            if (regTop < 0) {
+            // Which part of the screen scrolls? The app tells us exactly (the scrolling
+            // list's bounds, from its scroll events); until it has, use the rows that changed.
+            if (scrollArea != null) {
+                regTop = Math.max(0, (int) (scrollArea.top / fscale));
+                regBot = Math.min(h - 1, (int) (scrollArea.bottom / fscale) - 1);
+            } else if (regTop < 0) {
                 regTop = est.y0;
                 regBot = est.y1;
             } else {
@@ -736,8 +759,10 @@ public class ShieldService extends AccessibilityService {
             float d = est.dyf * fscale;
             float top = regTop * fscale, bottom = (regBot + 1) * fscale;
             for (Cover c : covers) {
-                float cy = c.r.centerY();
-                if ((c.ocr || c.clip != null) && cy >= top && cy <= bottom) c.r.offset(0, d);
+                if (c.ocr && !c.inRegion && c.r.centerY() >= top && c.r.centerY() <= bottom) {
+                    c.inRegion = true;
+                }
+                if (inBand(c, top, bottom)) c.r.offset(0, d);
             }
             logShift(new Shift(shiftSeq.incrementAndGet(), null, top, bottom, 0, d));
             if (dtMs > 2 && dtMs < 120) {
@@ -745,11 +770,6 @@ public class ShieldService extends AccessibilityService {
                 pxV = pxV == 0 ? v : 0.5f * pxV + 0.5f * v;
             }
             lastRigidMs = now;
-            for (Cover c : covers) {
-                if (c.ocr && !c.inRegion && c.r.centerY() >= top && c.r.centerY() <= bottom) {
-                    c.inRegion = true;
-                }
-            }
             shiftDirty(regTop, regBot, est.dy);
             for (int y = est.y0; y <= est.y1; y++) if (est.residual[y]) dirty[y] = true;
             dropScrolledOut();
@@ -760,7 +780,10 @@ public class ShieldService extends AccessibilityService {
                 int a = Math.max(0, y - 8), b = Math.min(h - 1, y + 8);
                 for (int k = a; k <= b; k++) dirty[k] = true;
             }
-            if (est.changedRows > h * 6 / 10) regTop = regBot = -1;   // a different screen
+            if (est.changedRows > h * 6 / 10) {   // a different screen
+                regTop = regBot = -1;
+                scrollArea = null;
+            }
             if (now - lastRigidMs > 150) dropChangedCovers(now);
         } else {
             pxV = 0;
@@ -1133,8 +1156,7 @@ public class ShieldService extends AccessibilityService {
             float lead = px ? pxV * LEAD_MS : 0;
             for (Cover c : covers) {
                 float top = c.r.top, bottom = c.r.bottom;
-                boolean moving = px && regTop >= 0 && (c.ocr ? c.inRegion : c.clip != null)
-                        && c.r.centerY() >= regT && c.r.centerY() <= regB;
+                boolean moving = px && regTop >= 0 && inBand(c, regT, regB);
                 if (moving && lead != 0) {
                     if (lead < 0) top += lead; else bottom += lead;
                     top -= 4;
@@ -1143,7 +1165,7 @@ public class ShieldService extends AccessibilityService {
                 Rect r = new Rect(Math.round(c.r.left), Math.round(top),
                         Math.round(c.r.right), Math.round(bottom));
                 if (c.clip != null && !r.intersect(c.clip)) continue;
-                if (c.ocr && c.inRegion && regTop >= 0
+                if (c.ocr && c.inRegion && regTop >= 0 && regB - regT >= 300
                         && !r.intersect(0, Math.round(regT), 1 << 20, Math.round(regB))) continue;
                 if (!screenMain.isEmpty() && !r.intersect(screenMain)) continue;
                 labeled.add(r);
