@@ -1,0 +1,8 @@
+     Bound services:{Service[label=Spoiler Shield, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_NOTIFICATION_STATE_CHANGED, TYPE_WINDOW_CONTENT_CHANGED, TYPE_VIEW_SCROLLED, TYPE_WINDOWS_CHANGED], notificationTimeout=0, requestA11yBtn=false]}
+     Enabled services:{{dev.mwkov.spoilershield/dev.mwkov.spoilershield.ShieldService}}
+     Binding services:{}
+     Crashed services:{}
+--
+[com.google.android.contacts][com.google.android.apps.nexuslauncher][com.google.android.apps.nexuslauncher][com.google.android.apps.youtube.music][com.google.android.apps.wellbeing][com.android.systemui][com.google.android.apps.nexuslauncher][com.google.android.as][com.google.android.youtube][dev.mwkov.spoilershield][com.google.android.inputmethod.latin][com.google.android.googlequicksearchbox]}]
+Global Info [ Top focused display Id = 0
+     Active Window Id = 1

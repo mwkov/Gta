@@ -1,0 +1,18 @@
+screen   gesture         frames  exposed%   worst px   cover err    err p95
+list     slow_drag          159     49.7%       120        0.0        0.0
+list     medium              11     54.5%       120        0.0        0.0
+list     fling_down          63     63.5%       120        2.6        6.0
+list     fling_up           151      0.0%         0        0.4        1.0
+list     drag_hold          338     94.7%       120       74.1      149.5
+list     repeat_flings      244    100.0%       120        0.0        0.0
+web      slow_drag           96     12.5%       112      135.2      443.5
+web      medium              21      4.8%       112      116.9      131.0
+web      fling_down         107      1.9%       112      125.2      127.5
+web      fling_up             1      0.0%         0      119.5      119.5
+web      drag_hold          196      4.1%        92      120.5      120.5
+web      repeat_flings      220     24.5%       112      122.5      312.5
+
+list     TOTAL: GTA text visible on 71.3% of frames, worst 120 px tall, avg cover offset 25.1 px
+web      TOTAL: GTA text visible on 12.0% of frames, worst 112 px tall, avg cover offset 124.8 px
+list     re-reads: 47, median 27 ms, p90 300 ms | full reads: 29, median 564 ms, max 6647 ms | finger-downs seen: 8
+web      re-reads: 71, median 14 ms, p90 354 ms | full reads: 48, median 52.0 ms, max 8856 ms | finger-downs seen: 8

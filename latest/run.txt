@@ -1,0 +1,224 @@
++ OUT=/home/runner/work/_temp/results
++ mkdir -p /home/runner/work/_temp/results
++ PKG=dev.mwkov.spoilershield
++ timeout 120 adb install -r app/build/outputs/apk/release/app-release.apk
+Performing Streamed Install
+Success
++ timeout 120 adb install -r testapp/build/outputs/apk/debug/testapp-debug.apk
+Performing Streamed Install
+Success
++ adb root
+restarting adbd as root
++ sleep 4
++ timeout 60 adb wait-for-device
++ adb shell am start -W -n dev.mwkov.spoilershield/.MainActivity
+Starting: Intent { cmp=dev.mwkov.spoilershield/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: dev.mwkov.spoilershield/.MainActivity
+TotalTime: 5085
+WaitTime: 5136
+Complete
++ sleep 3
++ adb shell am force-stop dev.mwkov.spoilershield
++ cat
++ adb push /home/runner/work/_temp/results/shield.xml /data/local/tmp/shield.xml
+/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 5.8 MB/s (298 bytes in 0.000s)
++ adb shell 'mkdir -p /data/data/dev.mwkov.spoilershield/shared_prefs && cp /data/local/tmp/shield.xml /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && U=$(stat -c %u /data/data/dev.mwkov.spoilershield) && chown -R $U:$U /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 771 /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 660 /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && restorecon -R /data/data/dev.mwkov.spoilershield/shared_prefs'
+SELinux: Loaded file context from:
+		/system/etc/selinux/plat_file_contexts
+		/system_ext/etc/selinux/system_ext_file_contexts
+		/vendor/etc/selinux/vendor_file_contexts
++ adb shell appops set dev.mwkov.spoilershield ACCESS_RESTRICTED_SETTINGS allow
++ adb shell settings put secure enabled_accessibility_services dev.mwkov.spoilershield/dev.mwkov.spoilershield.ShieldService
++ adb shell settings put secure accessibility_enabled 1
++ sleep 6
++ adb shell dumpsys accessibility
++ grep -i -A2 spoiler
++ head -20
++ adb shell wm size
++ adb shell wm density
++ adb logcat -c
++ LOGPID=3427
++ run list ListActivity
++ mark 'screen list'
++ adb shell log -p i -t ShieldHarness 'M screen list'
++ adb logcat -v raw -s ShieldTrace:I ShieldHarness:I
++ adb shell am start -W -n dev.mwkov.shieldtest/.ListActivity
+Starting: Intent { cmp=dev.mwkov.shieldtest/.ListActivity }
+Status: ok
+LaunchState: COLD
+Activity: dev.mwkov.shieldtest/.ListActivity
+TotalTime: 5593
+WaitTime: 5608
+Complete
++ sleep 6
++ REC=3440
++ sleep 1
++ adb shell screenrecord --bit-rate 8000000 --time-limit 120 /sdcard/list.mp4
++ gestures
++ mark slow_drag
++ adb shell log -p i -t ShieldHarness 'M slow_drag'
++ adb shell input swipe 540 1800 540 900 1500
++ sleep 2.5
++ mark medium
++ adb shell log -p i -t ShieldHarness 'M medium'
++ adb shell input swipe 540 1800 540 700 400
++ sleep 3
++ mark fling_down
++ adb shell log -p i -t ShieldHarness 'M fling_down'
++ adb shell input swipe 540 2000 540 500 80
++ sleep 4
++ mark fling_up
++ adb shell log -p i -t ShieldHarness 'M fling_up'
++ adb shell input swipe 540 500 540 2000 80
++ sleep 4
++ mark drag_hold
++ adb shell log -p i -t ShieldHarness 'M drag_hold'
++ adb shell input motionevent DOWN 540 1800
++ sleep 0.15
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1750
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1700
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1650
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1600
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1550
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1500
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1450
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1400
++ sleep 0.8
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1350
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1300
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1250
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1200
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1150
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1100
++ adb shell input motionevent UP 540 1100
++ sleep 3
++ mark repeat_flings
++ adb shell log -p i -t ShieldHarness 'M repeat_flings'
++ for i in 1 2 3
++ adb shell input swipe 540 1900 540 900 120
++ sleep 1.2
++ for i in 1 2 3
++ adb shell input swipe 540 1900 540 900 120
++ sleep 1.2
++ for i in 1 2 3
++ adb shell input swipe 540 1900 540 900 120
++ sleep 1.2
++ sleep 3
++ mark end
++ adb shell log -p i -t ShieldHarness 'M end'
++ adb shell pkill -INT screenrecord
++ sleep 3
++ kill 3440
++ timeout 60 adb pull /sdcard/list.mp4 /home/runner/work/_temp/results/list.mp4
+/sdcard/list.mp4: 1 file pulled, 0 skipped. 164.9 MB/s (1875466 bytes in 0.011s)
++ adb shell am force-stop dev.mwkov.shieldtest
++ run web WebActivity
++ mark 'screen web'
++ adb shell log -p i -t ShieldHarness 'M screen web'
++ adb shell am start -W -n dev.mwkov.shieldtest/.WebActivity
+Starting: Intent { cmp=dev.mwkov.shieldtest/.WebActivity }
+Status: ok
+LaunchState: COLD
+Activity: dev.mwkov.shieldtest/.WebActivity
+TotalTime: 5426
+WaitTime: 5481
+Complete
++ sleep 6
++ REC=3609
++ sleep 1
++ adb shell screenrecord --bit-rate 8000000 --time-limit 120 /sdcard/web.mp4
++ gestures
++ mark slow_drag
++ adb shell log -p i -t ShieldHarness 'M slow_drag'
++ adb shell input swipe 540 1800 540 900 1500
++ sleep 2.5
++ mark medium
++ adb shell log -p i -t ShieldHarness 'M medium'
++ adb shell input swipe 540 1800 540 700 400
++ sleep 3
++ mark fling_down
++ adb shell log -p i -t ShieldHarness 'M fling_down'
++ adb shell input swipe 540 2000 540 500 80
++ sleep 4
++ mark fling_up
++ adb shell log -p i -t ShieldHarness 'M fling_up'
++ adb shell input swipe 540 500 540 2000 80
++ sleep 4
++ mark drag_hold
++ adb shell log -p i -t ShieldHarness 'M drag_hold'
++ adb shell input motionevent DOWN 540 1800
++ sleep 0.15
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1750
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1700
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1650
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1600
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1550
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1500
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1450
++ for y in 1750 1700 1650 1600 1550 1500 1450 1400
++ adb shell input motionevent MOVE 540 1400
++ sleep 0.8
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1350
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1300
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1250
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1200
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1150
++ for y in 1350 1300 1250 1200 1150 1100
++ adb shell input motionevent MOVE 540 1100
++ adb shell input motionevent UP 540 1100
++ sleep 3
++ mark repeat_flings
++ adb shell log -p i -t ShieldHarness 'M repeat_flings'
++ for i in 1 2 3
++ adb shell input swipe 540 1900 540 900 120
++ sleep 1.2
++ for i in 1 2 3
++ adb shell input swipe 540 1900 540 900 120
++ sleep 1.2
++ for i in 1 2 3
++ adb shell input swipe 540 1900 540 900 120
++ sleep 1.2
++ sleep 3
++ mark end
++ adb shell log -p i -t ShieldHarness 'M end'
++ adb shell pkill -INT screenrecord
++ sleep 3
++ kill 3609
++ timeout 60 adb pull /sdcard/web.mp4 /home/runner/work/_temp/results/web.mp4
+/sdcard/web.mp4: 1 file pulled, 0 skipped. 185.7 MB/s (1835943 bytes in 0.009s)
++ adb shell am force-stop dev.mwkov.shieldtest
++ sleep 2
++ kill 3427
++ adb shell screencap -p /sdcard/last.png
++ adb pull /sdcard/last.png /home/runner/work/_temp/results/last.png
+/sdcard/last.png: 1 file pulled, 0 skipped. 93.2 MB/s (1339877 bytes in 0.014s)
++ wc -l /home/runner/work/_temp/results/log.txt
+4067 /home/runner/work/_temp/results/log.txt
