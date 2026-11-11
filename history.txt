@@ -27,3 +27,23 @@ web      TOTAL: GTA text visible on 12.0% of frames, worst 112 px tall, avg cove
 list     re-reads: 47, median 27 ms, p90 300 ms | full reads: 29, median 564 ms, max 6647 ms | finger-downs seen: 8
 web      re-reads: 71, median 14 ms, p90 354 ms | full reads: 48, median 52.0 ms, max 8856 ms | finger-downs seen: 8
 
+=== run 6 commit 4c9142a 2026-11-11T17:12:35Z
+screen   gesture         frames  exposed%   worst px   cover err    err p95
+list     slow_drag          246    100.0%       120        0.0        0.0
+list     medium             212    100.0%       120        0.0        0.0
+list     fling_down         250    100.0%       120        0.0        0.0
+list     fling_up           248    100.0%       120        0.0        0.0
+list     drag_hold          307    100.0%       120        0.0        0.0
+list     repeat_flings      419    100.0%       120        0.0        0.0
+web      slow_drag          252    100.0%       112        0.0        0.0
+web      medium             213    100.0%       112        0.0        0.0
+web      fling_down         242    100.0%       112        0.0        0.0
+web      fling_up           253    100.0%       112        0.0        0.0
+web      drag_hold          317    100.0%       112        0.0        0.0
+web      repeat_flings       51    100.0%       112        0.0        0.0
+
+list     TOTAL: GTA text visible on 100.0% of frames, worst 120 px tall, avg cover offset 0.0 px
+web      TOTAL: GTA text visible on 100.0% of frames, worst 112 px tall, avg cover offset 0.0 px
+list     re-reads: 0, median - ms, p90 - ms | full reads: 2, median 165.5 ms, max 168 ms | finger-downs seen: 6
+web      re-reads: 0, median - ms, p90 - ms | full reads: 0, median - ms, max - ms | finger-downs seen: 0
+
