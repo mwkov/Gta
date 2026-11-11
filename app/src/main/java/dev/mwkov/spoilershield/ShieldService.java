@@ -555,15 +555,20 @@ public class ShieldService extends AccessibilityService {
             }
         }
         render();
+        // A scroll ended once nothing moves any more (a finger may still rest on the screen,
+        // which keeps the frames running, but the page is still: read it whole now).
+        boolean anyMoving = false;
+        for (Tracker t : trackers) if (t.moving) anyMoving = true;
+        if (scrolling && !anyMoving) {
+            scrolling = false;
+            forceDeep = true;
+            if (trace) android.util.Log.i("ShieldTrace", "Z " + now + " still");
+            scheduleScan(0);
+        }
         if (any && enabled) {
             Choreographer.getInstance().postFrameCallback(frameCallback);
         } else {
             framesRunning = false;
-            if (scrolling) {
-                scrolling = false;
-                forceDeep = true;
-                scheduleScan(0);       // a scroll just ended: read the whole page
-            }
             scheduleIdlePoll();
         }
     }
@@ -670,8 +675,9 @@ public class ShieldService extends AccessibilityService {
             dropStale(a);
             return;
         }
+        // (2 px: web pages report positions that wobble by a pixel while still)
         boolean moved = !Float.isNaN(t.lastPollY)
-                && (Math.abs(b.top - t.lastPollY) >= 1 || Math.abs(b.left - t.lastPollX) >= 1);
+                && (Math.abs(b.top - t.lastPollY) >= 2 || Math.abs(b.left - t.lastPollX) >= 2);
         t.lastPollX = b.left;
         t.lastPollY = b.top;
         t.lastPollLive = now;
@@ -1001,6 +1007,9 @@ public class ShieldService extends AccessibilityService {
             synchronized (textBoxes) {
                 rel = textBoxes.get(key);
             }
+            if (trace && rel == null && scrolling) {
+                android.util.Log.i("ShieldTrace", "X skipped-scrolling");
+            }
             if (rel != null && rel[4] == r.width() && rel[5] == r.height()) {
                 r.set(r.left + rel[0], r.top + rel[1], r.left + rel[2], r.top + rel[3]);
             } else if (!scrolling) {
@@ -1091,9 +1100,16 @@ public class ShieldService extends AccessibilityService {
         args.putInt(argPrefix + "ARG_LENGTH", s.length());
         AccessibilityNodeInfo copy = Build.VERSION.SDK_INT >= 30
                 ? new AccessibilityNodeInfo(node) : AccessibilityNodeInfo.obtain(node);
-        if (!copy.refreshWithExtraData(key, args)) return false;
+        if (!copy.refreshWithExtraData(key, args)) {
+            if (trace) android.util.Log.i("ShieldTrace", "X refresh-failed " + key);
+            return false;
+        }
         android.os.Parcelable[] boxes = copy.getExtras().getParcelableArray(key);
-        if (boxes == null) return false;
+        if (boxes == null) {
+            if (trace) android.util.Log.i("ShieldTrace", "X no-boxes " + key + " "
+                    + bundleText(copy.getExtras()));
+            return false;
+        }
         RectF u = null;
         for (android.os.Parcelable b : boxes) {
             if (!(b instanceof RectF)) continue;   // null = character not on screen
@@ -1101,7 +1117,11 @@ public class ShieldService extends AccessibilityService {
             if (f.width() <= 0 || f.height() <= 0) continue;
             if (u == null) u = new RectF(f); else u.union(f);
         }
-        if (u == null) return false;
+        if (u == null) {
+            if (trace) android.util.Log.i("ShieldTrace", "X all-null n=" + boxes.length);
+            return false;
+        }
+        if (trace) android.util.Log.i("ShieldTrace", "X ok " + u.toShortString());
         text.set((int) Math.floor(u.left), (int) Math.floor(u.top),
                 (int) Math.ceil(u.right), (int) Math.ceil(u.bottom));
         copy.getBoundsInScreen(nodeBounds);

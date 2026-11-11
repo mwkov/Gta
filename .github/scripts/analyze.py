@@ -29,6 +29,18 @@ def uncovered(r, cov, step=4):
         if row_vis: vis_rows += 1
     return (vis / tot if tot else 0.0), vis_rows * step
 
+TOP = 0
+
+def hidden(rects, step=12):
+    """Share of the content area (below the app bar, above the gesture bar) hidden by covers/curtains."""
+    top = TOP or int(BOTTOM * 128 / 1168)
+    tot = vis = 0
+    for y in range(top, BOTTOM, step):
+        for x in range(0, 540 if BOTTOM < 1200 else 1080, step):
+            tot += 1
+            if any(c[0] <= x < c[2] and c[1] <= y < c[3] for c in rects): vis += 1
+    return vis / tot if tot else 0
+
 def main(path, screen=None):
     global BOTTOM
     if screen:
@@ -63,17 +75,19 @@ def main(path, screen=None):
             if len(f) > 4 and f[4] == 'list': listscans[screen].append(int(f[0]))
             elif len(f) > 5: winscans[screen][' '.join(f[5:])[:40]].append(int(f[0]))
         elif k == 'F': fingers[screen] += 1
-    print('%-8s %-14s %7s %9s %10s %11s %10s %12s' % ('screen', 'gesture', 'frames', 'exposed%', 'worst px', 'cover err', 'err p95', 'longest ms'))
+    print('%-8s %-14s %7s %9s %10s %11s %10s %12s %9s' % ('screen', 'gesture', 'frames', 'exposed%', 'worst px', 'cover err', 'err p95', 'longest ms', 'hidden%'))
     totals = collections.defaultdict(lambda: [0, 0, 0, []])
+    HID = collections.defaultdict(list)
     for (scr, name), d in sections.items():
         if name in ('end', 'video'): continue
         C = d['C']; ci = -1; frames = exposed = worst = 0; errs = []
-        run_start = None; longest = 0
+        run_start = None; longest = 0; hid = []
         for (t, hs) in d['H']:
             frame_exposed = False
             while ci + 1 < len(C) and C[ci + 1][0] <= t: ci += 1
             covs = C[ci][1] if ci >= 0 else []
             curt = C[ci][2] if ci >= 0 else []
+            hid.append(hidden(covs + curt))
             for r in hs:
                 if r[3] < 0 or r[1] > BOTTOM: continue
                 frames += 1
@@ -96,14 +110,16 @@ def main(path, screen=None):
                 run_start = None
         e = statistics.mean(errs) if errs else 0
         p95 = sorted(errs)[int(len(errs) * .95)] if errs else 0
-        print('%-8s %-14s %7d %8.1f%% %9d %10.1f %10.1f %12d' % (scr, name, frames, 100 * exposed / max(1, frames), worst, e, p95, longest))
+        hp = 100 * statistics.mean(hid) if hid else 0
+        print('%-8s %-14s %7d %8.1f%% %9d %10.1f %10.1f %12d %8.1f%%' % (scr, name, frames, 100 * exposed / max(1, frames), worst, e, p95, longest, hp))
+        HID[scr] += hid
         T = totals[scr]; T[0] += frames; T[1] += exposed; T[2] = max(T[2], worst); T[3] += errs
         T.append(longest)
     print()
     for scr, T in totals.items():
         e = statistics.mean(T[3]) if T[3] else 0
-        print('%-8s TOTAL: GTA text visible on %.1f%% of frames, worst %d px tall, avg cover offset %.1f px, longest exposure %d ms'
-              % (scr, 100 * T[1] / max(1, T[0]), T[2], e, max(T[4:] or [0])))
+        print('%-8s TOTAL: GTA text visible on %.1f%% of frames, worst %d px tall, avg cover offset %.1f px, longest exposure %d ms, screen hidden %.1f%%'
+              % (scr, 100 * T[1] / max(1, T[0]), T[2], e, max(T[4:] or [0]), 100 * statistics.mean(HID[scr]) if HID[scr] else 0))
     for scr in totals:
         q = polls[scr]; s = scans[scr]
         print('%-8s re-reads: %d, median %s ms, p90 %s ms | full reads: %d, median %s ms, max %s ms | finger-downs seen: %d'
