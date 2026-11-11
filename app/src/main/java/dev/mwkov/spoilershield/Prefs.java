@@ -17,6 +17,7 @@ final class Prefs {
     static final String KEY_IGNORED = "ignored_apps";
     static final String KEY_SCROLL_BLACKOUT = "scroll_blackout";
     static final String KEY_DEBUG = "debug";
+    static final String KEY_TRACE = "trace";
 
     static final String DEFAULT_PATTERN =
             "gta|grand theft auto|rockstar|leonida|vice city|port gellhorn|grassrivers|mount kalaga"
@@ -39,6 +40,11 @@ final class Prefs {
 
     static boolean scrollBlackout(Context c) {
         return get(c).getBoolean(KEY_SCROLL_BLACKOUT, true);
+    }
+
+    /** Test-only: log every drawn cover (set by the emulator test, not shown in the app). */
+    static boolean trace(Context c) {
+        return get(c).getBoolean(KEY_TRACE, false);
     }
 
     static boolean debug(Context c) {

@@ -94,6 +94,7 @@ public class ShieldService extends AccessibilityService {
     private volatile boolean coverCard;
     private volatile boolean edgeCurtain;
     private volatile boolean debug;
+    private volatile boolean trace;
     private volatile Set<String> ignored = new HashSet<>();
 
     // scan thread state (plus the volatiles)
@@ -225,6 +226,7 @@ public class ShieldService extends AccessibilityService {
         coverCard = Prefs.coverCard(this);
         edgeCurtain = Prefs.scrollBlackout(this);
         debug = Prefs.debug(this);
+        trace = Prefs.trace(this);
         pattern = Prefs.compile(Prefs.pattern(this));
         ignored = Prefs.ignoredApps(this);
     }
@@ -347,6 +349,7 @@ public class ShieldService extends AccessibilityService {
     private void onFingerDown() {
         if (!enabled) return;
         fingerDowns++;
+        if (trace) android.util.Log.i("ShieldTrace", "F " + SystemClock.uptimeMillis());
         long now = SystemClock.uptimeMillis();
         boolean any = false;
         for (Tracker t : trackers) {
@@ -571,6 +574,7 @@ public class ShieldService extends AccessibilityService {
         t.inFlight = Math.max(0, t.inFlight - 1);
         if (!trackers.contains(t)) return;
         long now = SystemClock.uptimeMillis();
+        if (trace) android.util.Log.i("ShieldTrace", "Q " + now + " " + (t1 - t0) + " " + ok);
         if (debug) {
             dbgPoll = "poll: " + (t1 - t0) + "ms " + (ok ? "ok" : "lost item")
                     + (t.moving ? " moving" : t.hot(now) ? " finger" : " still")
@@ -695,6 +699,8 @@ public class ShieldService extends AccessibilityService {
         final int errors = scanErrors;
         final boolean deepDone = deepAllowed && !deepCut && errors == 0;
         final List<Rect> areas = scanDeepAreas;
+        if (trace) android.util.Log.i("ShieldTrace", "S " + SystemClock.uptimeMillis() + " " + took
+                + " " + nodes + " " + found.size() + " " + errors);
         main.post(() -> {
             dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits, "
                     + errors + " err, " + (deepDone ? "FULL x" + areas.size() : "visible");
@@ -1014,6 +1020,15 @@ public class ShieldService extends AccessibilityService {
             }
         }
         overlay.setFrame(drawn, plain);
+        if (trace) {
+            StringBuilder sb = new StringBuilder("C ").append(SystemClock.uptimeMillis()).append(' ');
+            for (Rect r : drawn) sb.append(r.left).append(',').append(r.top).append(',')
+                    .append(r.right).append(',').append(r.bottom).append(';');
+            sb.append(" P ");
+            for (Rect r : plain) sb.append(r.left).append(',').append(r.top).append(',')
+                    .append(r.right).append(',').append(r.bottom).append(';');
+            android.util.Log.i("ShieldTrace", sb.toString());
+        }
         if (debug && enabled) {
             int moving = 0;
             float v = 0;
