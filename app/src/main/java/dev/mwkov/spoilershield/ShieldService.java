@@ -134,7 +134,8 @@ public class ShieldService extends AccessibilityService {
 
     // main thread state
     private int incompleteStreak;
-    private List<Rect> deepAreas = new ArrayList<>();
+    // Scrolling areas read whole (also what's scrolled out of view), per window.
+    private final java.util.HashMap<Integer, List<Rect>> deepAreas = new java.util.HashMap<>();
     private List<Cover> covers = new ArrayList<>();
     private final List<Shift> shifts = new ArrayList<>();
     private final List<Tracker> trackers = new ArrayList<>();
@@ -202,6 +203,7 @@ public class ShieldService extends AccessibilityService {
         int inFlight;
         int epoch;               // bumped when a read moves this list's covers
         boolean blind;           // moving, but neither events nor re-reads say how far
+        int window = -1;         // the window it is in
         boolean moving;
         Cover anchor;
         float lastPollX = Float.NaN, lastPollY = Float.NaN;
@@ -397,7 +399,7 @@ public class ShieldService extends AccessibilityService {
             trackers.clear();
             sources.clear();
             shifts.clear();
-            deepAreas = new ArrayList<>();
+            deepAreas.clear();
             forceDeep = true;
             armed = false;
             CharSequence pk = event.getPackageName();
@@ -473,6 +475,7 @@ public class ShieldService extends AccessibilityService {
     private void onScrolled(AccessibilityEvent event, Rect container, long arrived) {
         if (!enabled) return;
         Tracker t = trackerFor(container);
+        t.window = event.getWindowId();
 
         int dx = 0, dy = 0;
         if (Build.VERSION.SDK_INT >= 28) {
@@ -1225,8 +1228,19 @@ public class ShieldService extends AccessibilityService {
     // Results (main thread)
     // =====================================================================
 
+    /**
+     * Did this read cover this list? Only a read of the list's own window does: system
+     * windows (status bar, shade) can span the whole screen, and their reads used to count
+     * as having read the list underneath, taking its edge curtain down mid-fling.
+     */
+    private static boolean readCovers(Tracker t, int window, Rect area) {
+        if (t.window != -1 && window != -1) return t.window == window;
+        return area == null || movesWith(t.c, area);
+    }
+
     /** A window closed (a dialog, a popup): its covers go with it. */
     private void dropGoneWindows(Set<Integer> present) {
+        deepAreas.keySet().retainAll(present);
         boolean changed = false;
         for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) {
             Cover c = it.next();
@@ -1290,10 +1304,9 @@ public class ShieldService extends AccessibilityService {
             }
         }
         if (deepDone) {
-            List<Rect> next = new ArrayList<>();
-            for (Rect a : deepAreas) if (area == null || overlapShare(a, area) < 0.6f) next.add(a);
-            next.addAll(rd.deepAreas);
-            deepAreas = next;
+            // (Per window: a read of a full-screen system window says nothing about the
+            // page underneath; it used to wipe the page's "read whole" mark.)
+            deepAreas.put(window, new ArrayList<>(rd.deepAreas));
         }
 
         // Bring results measured during movement up to date.
@@ -1306,14 +1319,14 @@ public class ShieldService extends AccessibilityService {
         // Whatever moved after this read began is still unread (edge curtain).
         if (!incomplete) {
             for (Tracker t : trackers) {
-                if (area == null || movesWith(t.c, area)) {
+                if (readCovers(t, window, area)) {
                     t.unX = t.unY = 0;
                     t.blind = false;
                 }
             }
             for (Shift s : shifts) {
                 if (s.seq <= startSeq) continue;
-                if (area != null && !movesWith(s.t.c, area)) continue;
+                if (!readCovers(s.t, window, area)) continue;
                 s.t.unX += s.dx;
                 s.t.unY += s.dy;
             }
@@ -1349,7 +1362,10 @@ public class ShieldService extends AccessibilityService {
         covers = next;
         // Every list with covers gets a tracker, so its re-reads can start right away.
         for (Cover c : covers) {
-            if (c.node != null && c.clip != null && !c.clip.isEmpty()) trackerFor(c.clip);
+            if (c.node != null && c.clip != null && !c.clip.isEmpty()) {
+                Tracker t = trackerFor(c.clip);
+                if (t.window == -1) t.window = c.window;
+            }
         }
         if (!found.isEmpty()) armed = true;
         if (!enabled) armed = false;
@@ -1397,7 +1413,9 @@ public class ShieldService extends AccessibilityService {
 
     /** True if a completed whole-page read covers this scrolling area. */
     private boolean wholePageRead(Rect c) {
-        for (Rect a : deepAreas) if (overlapShare(c, a) >= 0.5f) return true;
+        for (List<Rect> l : deepAreas.values()) {
+            for (Rect a : l) if (overlapShare(c, a) >= 0.5f) return true;
+        }
         return false;
     }
 
