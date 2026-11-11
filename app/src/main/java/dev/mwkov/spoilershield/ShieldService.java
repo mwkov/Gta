@@ -919,8 +919,8 @@ public class ShieldService extends AccessibilityService {
                     rd.deepCut = true;
                     return;
                 }
-                node.getBoundsInScreen(rd.tmp);
-                if (trace && rd.invisibles <= 6 && rd.deep) {
+                boundsOf(node, rd.tmp);
+                if (trace && rd.invisibles <= 3 && rd.deep) {
                     CharSequence tx = node.getText();
                     android.util.Log.i("ShieldTrace", "I " + SystemClock.uptimeMillis() + " "
                             + rd.tmp.toShortString() + " in " + container.toShortString() + " "
@@ -1012,14 +1012,15 @@ public class ShieldService extends AccessibilityService {
     private Cover coverFor(Read rd, AccessibilityNodeInfo node, Rect container) {
         long seq = rd.startSeq;
         Rect r = new Rect();
-        node.getBoundsInScreen(r);
+        boundsOf(node, r);
         if (r.isEmpty()) return null;
         int window = node.getWindowId();
+        boolean onScreen = node.isVisibleToUser();
         // Cover the text itself, not the box around it: a web paragraph's box includes its
         // padding, a text view's its padding. Ask where the characters are drawn.
         boolean measuredNow = false;
         int nodeLeft = r.left, nodeTop = r.top;
-        if (!coverCard || container == null) {
+        if (onScreen && (!coverCard || container == null)) {
             long s0 = shiftSeq.get();
             Rect nb = new Rect(), tb = new Rect();
             if (textBounds(rd, node, tb, nb) && tb.intersect(nb)) {
@@ -1117,6 +1118,23 @@ public class ShieldService extends AccessibilityService {
                 (int) Math.ceil(u.right), (int) Math.ceil(u.bottom));
         copy.getBoundsInScreen(nodeBounds);
         return !text.isEmpty() && !nodeBounds.isEmpty();
+    }
+
+    /**
+     * The node's bounds on screen. For something scrolled out of view Android cuts the box
+     * at the edge of the view, which loses where it really is. Web views also report the
+     * uncut edges ("unclippedTop/Bottom"): with those, a whole web page is known in advance.
+     */
+    private static void boundsOf(AccessibilityNodeInfo node, Rect out) {
+        node.getBoundsInScreen(out);
+        if (out.top < out.bottom && out.left < out.right) return;
+        android.os.Bundle x = node.getExtras();
+        if (x == null) return;
+        int top = x.getInt("AccessibilityNodeInfo.unclippedTop", Integer.MIN_VALUE);
+        int bottom = x.getInt("AccessibilityNodeInfo.unclippedBottom", Integer.MIN_VALUE);
+        if (top != Integer.MIN_VALUE) out.top = top;
+        if (bottom != Integer.MIN_VALUE) out.bottom = bottom;
+        if (out.top >= out.bottom) out.setEmpty();
     }
 
     private static String bundleText(android.os.Bundle b) {
@@ -1285,10 +1303,14 @@ public class ShieldService extends AccessibilityService {
         readScreenBounds(screenMain);
         render();
 
+        boolean curtainUp = false;
+        for (Tracker t : trackers) if (t.unX != 0 || t.unY != 0) curtainUp = true;
         main.removeCallbacks(recheckRunnable);
         if (anyActive || incomplete) {
             // keep reading while it scrolls / until clean (gently, if the app is slow)
-            scheduleScan(incomplete ? Math.max(40, now - rd.start) : 0);
+            scheduleScan(incomplete ? Math.min(300, Math.max(40, (now - rd.start) / 2)) : 0);
+        } else if (curtainUp) {
+            scheduleScan(100);   // something unread is blanked out: read it soon
         } else if (!covers.isEmpty()) {
             main.postDelayed(recheckRunnable, RECHECK_MS);
         }

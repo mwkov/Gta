@@ -70,10 +70,20 @@ public class ListActivity extends Activity {
             TextView t = (TextView) row.getChildAt(0);
             if (!"gta".equals(t.getTag())) continue;
             t.getLocationOnScreen(loc);
-            int top = Math.max(loc[1], clipTop), bottom = Math.min(loc[1] + t.getHeight(), clipBottom);
+            // Where the characters are drawn (not the whole text box with its empty space).
+            android.text.Layout l = t.getLayout();
+            if (l == null) continue;
+            float left = Float.MAX_VALUE, right = 0;
+            for (int k = 0; k < l.getLineCount(); k++) {
+                left = Math.min(left, l.getLineLeft(k));
+                right = Math.max(right, l.getLineRight(k));
+            }
+            int x0 = loc[0] + t.getTotalPaddingLeft(), y0 = loc[1] + t.getTotalPaddingTop();
+            int top = Math.max(y0 + l.getLineTop(0), clipTop);
+            int bottom = Math.min(y0 + l.getLineBottom(l.getLineCount() - 1), clipBottom);
             if (bottom <= top) continue;
-            sb.append(loc[0]).append(',').append(top).append(',')
-                    .append(loc[0] + t.getWidth()).append(',').append(bottom).append(';');
+            sb.append(x0 + (int) left).append(',').append(top).append(',')
+                    .append(x0 + (int) Math.ceil(right)).append(',').append(bottom).append(';');
         }
         Log.i("ShieldHarness", sb.toString());
         if (!isFinishing()) Choreographer.getInstance().postFrameCallback(this::frame);
