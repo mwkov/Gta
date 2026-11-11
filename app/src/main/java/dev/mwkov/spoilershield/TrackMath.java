@@ -29,6 +29,13 @@ final class TrackMath {
     private boolean hasLastFrame;
     private float aheadMs = 120f;
 
+    // recent exact positions, for a steady speed estimate (fit a line, not two points)
+    private static final int HIST = 8;
+    private static final long FIT_MS = 60;
+    private final float[] hp = new float[HIST];
+    private final long[] ht = new long[HIST];
+    private int hn, hi;
+
     // previous velocity sample, for the deceleration estimate
     private float vPrev;
     private long vPrevT;
@@ -42,6 +49,7 @@ final class TrackMath {
         hasVPrev = false;
         v = a = 0;
         hasLastFrame = false;
+        hn = 0;
     }
 
     float shown() {
@@ -75,11 +83,34 @@ final class TrackMath {
 
     /** An exact position measured at time `at` (from re-reading one covered item). */
     void setPosition(float pos, long at) {
-        if (hasTruth && at > truthT) {
-            float dt = at - truthT;
-            if (dt >= 6) updateVelocity((pos - truth) / dt, at - (long) (dt / 2), at);
-        } else if (!hasTruth) {
-            hasV = false;
+        if (hasTruth && at <= truthT) return;          // older than what we have
+        if (!hasTruth) hasV = false;
+        hp[hi] = pos;
+        ht[hi] = at;
+        hi = (hi + 1) % HIST;
+        if (hn < HIST) hn++;
+        // Least-squares line through the readings of the last FIT_MS: steady even when
+        // readings come a few ms apart and are rounded to whole pixels.
+        double st = 0, sp = 0, stt = 0, stp = 0;
+        int n = 0;
+        long t0 = at, tMin = at;
+        for (int k = 0; k < hn; k++) {
+            int j = (hi - 1 - k + HIST) % HIST;
+            if (at - ht[j] > FIT_MS && n >= 2) break;
+            double x = ht[j] - t0;
+            st += x;
+            sp += hp[j];
+            stt += x * x;
+            stp += x * hp[j];
+            n++;
+            tMin = ht[j];
+        }
+        if (n >= 2 && at - tMin >= 12) {
+            double den = n * stt - st * st;
+            if (den > 1e-6) {
+                float slope = (float) ((n * stp - st * sp) / den);
+                updateVelocity(slope, (at + tMin) / 2, at);
+            }
         }
         truth = pos;
         truthT = at;
@@ -113,6 +144,7 @@ final class TrackMath {
         v = a = 0;
         hasV = false;
         hasVPrev = false;
+        hn = 0;
     }
 
     /** Where the content should be at `now`, predicting at most `aheadMs` past the last fact. */

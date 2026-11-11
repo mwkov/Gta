@@ -17,7 +17,6 @@ final class Prefs {
     static final String KEY_IGNORED = "ignored_apps";
     static final String KEY_SCROLL_BLACKOUT = "scroll_blackout";
     static final String KEY_DEBUG = "debug";
-    static final String KEY_BLUR = "blur";
 
     static final String DEFAULT_PATTERN =
             "gta|grand theft auto|rockstar|leonida|vice city|port gellhorn|grassrivers|mount kalaga"
@@ -40,10 +39,6 @@ final class Prefs {
 
     static boolean scrollBlackout(Context c) {
         return get(c).getBoolean(KEY_SCROLL_BLACKOUT, true);
-    }
-
-    static boolean blur(Context c) {
-        return get(c).getBoolean(KEY_BLUR, true);
     }
 
     static boolean debug(Context c) {

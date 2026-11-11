@@ -5,6 +5,8 @@ built to dodge GTA 6 spoilers until the PC release.
 
 - Accessibility service reads on-screen text (titles, captions, messages, notifications) and
   draws an opaque cover over matches. Can't read text inside images or videos.
+- Covers follow scrolling by re-reading one covered item's position per frame, starting the
+  moment a finger touches the screen (detected with a 1x1 outside-touch watcher window).
 - Keywords, "cover whole item" and on/off are set in the app; a Quick Settings tile pauses it.
 - Everything runs on the phone; nothing is stored or sent.
 

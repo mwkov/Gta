@@ -7,8 +7,10 @@ class Sim {
     // ---- the content's true motion (px; negative = moving up), time in ms
     static double content(double t) { return pos[(int) Math.min(pos.length - 1, Math.max(0, Math.round(t * 10)))]; }
     static double[] pos;
+    static double[] touches;
     static void buildProfile(int kind, Random r) {
         int n = 40000; pos = new double[n]; double p = 0, v = 0;
+        touches = kind == 0 ? new double[]{20, 2420} : new double[]{20, 1020, 1670};
         for (int i = 1; i < n; i++) {
             double t = i / 10.0;
             if (kind == 0) {                       // drag then fling then slow drag then hard stop
@@ -97,6 +99,37 @@ class Sim {
                 inFlight = true; sentAt = now; nextIdle = now + 50;
                 double lat = 3 + r.nextDouble() * 17; measAt = now + lat * 0.6; measPos = Math.round(appPos(measAt));
                 busyUntil = now + lat;
+            }
+            boolean pollsStill = now - lastPollLive < 100 && now - lastMovePoll > 90;
+            boolean eventsStill = now - lastArr > 220 && now - lastPollLive > 100;
+            if (moving && (pollsStill || eventsStill)) { t.stop(Math.round(now)); moving = false; }
+            t.frame(Math.round(now)); return t.shown();
+        }
+    }
+
+    static class Touch implements Algo {   // re-reads every frame from finger-down, up to 2 in flight
+        TrackMath t = new TrackMath(); Random r; double lastArr = -1e9, lastPollLive = -1e9, hotUntil = -1;
+        boolean moving; double lastMovePoll = -1e9, lastPollPos = Double.NaN, lastAt = -1; int ti = 0;
+        ArrayDeque<double[]> flight = new ArrayDeque<>();   // sent, done, pos
+        Touch(Random r) { this.r = r; }
+        public void event(Ev e, double now) {
+            lastArr = now; moving = true; hotUntil = Math.max(hotUntil, now + 300);
+            if (now - lastPollLive > 150) t.addDelta((float) e.delta, Math.round(e.sent), (float) e.window);
+        }
+        public double frame(double now) {
+            while (ti < touches.length && touches[ti] <= now) { hotUntil = now + 1500; ti++; }
+            while (!flight.isEmpty() && flight.peek()[1] <= now) {
+                double[] q = flight.poll(); lastPollLive = now;
+                long at = Math.round((q[0] + q[1]) / 2) - 6;
+                if (at <= lastAt) continue; lastAt = at;
+                if (!Double.isNaN(lastPollPos) && Math.abs(q[2] - lastPollPos) >= 0.5) { lastMovePoll = now; moving = true; hotUntil = Math.max(hotUntil, now + 300); }
+                lastPollPos = q[2];
+                t.setPosition((float) q[2], at);
+            }
+            boolean hot = moving || now < hotUntil;
+            if (flight.size() < 2 && (hot || flight.isEmpty() && now % 300 < 17)) {
+                double lat = 3 + r.nextDouble() * 17; double meas = now + lat * 0.6;
+                flight.add(new double[]{now, now + lat, Math.round(appPos(meas))});
             }
             boolean pollsStill = now - lastPollLive < 100 && now - lastMovePoll > 90;
             boolean eventsStill = now - lastArr > 220 && now - lastPollLive > 100;

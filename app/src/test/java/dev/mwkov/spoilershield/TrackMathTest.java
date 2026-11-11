@@ -18,7 +18,7 @@ public class TrackMathTest {
             Sim.buildProfile(kind, r);
             List<Sim.Ev> evs = Sim.events(r);
             Sim.Algo a = which == 0 ? new Sim.Old() : which == 1 ? new Sim.NewEvents()
-                    : new Sim.NewPolls(new Random(seed));
+                    : which == 2 ? new Sim.NewPolls(new Random(seed)) : new Sim.Touch(new Random(seed));
             double[] m = Sim.run(a, evs);
             tot[0] += m[0] / seeds;
             tot[1] = Math.max(tot[1], m[1]);
@@ -33,6 +33,16 @@ public class TrackMathTest {
             double[] old = measure(kind, 0), now = measure(kind, 2);
             assertTrue("avg error " + now[0] + " vs old " + old[0], now[0] < old[0] * 0.5);
             assertTrue("worst jump " + now[2], now[2] < 60);
+        }
+    }
+
+    @Test
+    public void fingerDownTrackingBeatsIdleChecks() {
+        for (int kind = 0; kind < 2; kind++) {
+            double[] idle = measure(kind, 2), touch = measure(kind, 3);
+            assertTrue("avg " + touch[0] + " vs " + idle[0], touch[0] < idle[0] * 0.8);
+            assertTrue("worst " + touch[1] + " vs " + idle[1], touch[1] < idle[1]);
+            assertTrue("worst jump " + touch[2], touch[2] < 45);
         }
     }
 
