@@ -462,3 +462,32 @@ web        window 3 null                                   reads  254, median   
 web        window 1 Shield Test                            reads   73, median     13 ms, max   5100 ms
 web        window 1 Home                                   reads    3, median     94 ms, max    140 ms
 
+=== run 22 main commit 9e0f186 2026-11-11T19:07:57Z
+screen   gesture         frames  exposed%   worst px   cover err    err p95   longest ms   hidden%
+list     slow_drag          184     23.9%        60       16.9       60.0          317     16.4%
+list     medium              11     18.2%        48       20.0       62.5           16      2.7%
+list     fling_down          47    100.0%        60        0.0        0.0          564      0.0%
+list     fling_up            62    100.0%        60       48.5       48.5          979      0.1%
+list     drag_hold          299     20.7%        48        5.3       24.0          347      7.5%
+list     repeat_flings      272     19.5%        60        3.2        9.5          831     27.9%
+web      slow_drag          168      7.7%        56       63.2      103.5          244     21.0%
+web      medium             154      3.2%        56       58.9       60.0           59     21.0%
+web      fling_down         240     21.2%        56       69.3       69.5         1084     14.9%
+web      fling_up           180     15.0%        56       60.6       58.5          578     17.6%
+web      drag_hold          291      6.2%        56       65.5       96.5          121     21.3%
+web      repeat_flings      258     45.0%        56       61.2       60.5         1495     11.3%
+
+list     TOTAL: GTA text visible on 30.9% of frames, worst 60 px tall, avg cover offset 8.3 px, longest exposure 979 ms, screen hidden 10.8%
+web      TOTAL: GTA text visible on 17.8% of frames, worst 56 px tall, avg cover offset 63.6 px, longest exposure 1495 ms, screen hidden 17.4%
+list     re-reads: 233, median 18 ms, p90 80 ms | full reads: 484, median 22.0 ms, max 1701 ms | finger-downs seen: 13
+list     test app frames: median 17 ms apart, p90 39 ms (a phone: 8-17 ms)
+list       window 3 Navigation bar                         reads  200, median   18.0 ms, max    306 ms
+list       window 3 null                                   reads  197, median     22 ms, max    323 ms
+list       window 1 Shield Test                            reads   87, median     48 ms, max   1701 ms
+web      re-reads: 377, median 22 ms, p90 130 ms | full reads: 560, median 6.0 ms, max 5247 ms | finger-downs seen: 13
+web      test app frames: median 17 ms apart, p90 45 ms (a phone: 8-17 ms)
+web        window 3 Navigation bar                         reads  243, median      6 ms, max    655 ms
+web        window 3 null                                   reads  237, median      7 ms, max    746 ms
+web        window 1 Shield Test                            reads   77, median      5 ms, max   5247 ms
+web        window 1 Home                                   reads    3, median     60 ms, max     87 ms
+
