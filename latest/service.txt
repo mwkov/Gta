@@ -3,6 +3,6 @@
      Binding services:{}
      Crashed services:{}
 --
-[dev.mwkov.spoilershield][com.google.android.apps.youtube.music][com.google.android.as][com.google.android.apps.wellbeing][com.android.systemui][com.google.android.apps.nexuslauncher][com.google.android.apps.nexuslauncher][com.google.android.youtube][com.google.android.inputmethod.latin][com.google.android.contacts][com.google.android.googlequicksearchbox][com.google.android.apps.nexuslauncher]}]
+[com.android.launcher3][com.android.launcher3][com.android.inputmethod.latin][com.android.systemui][dev.mwkov.spoilershield][com.android.launcher3]}]
 Global Info [ Top focused display Id = 0
-     Active Window Id = -1
+     Active Window Id = 1

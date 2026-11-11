@@ -1,8 +1,7 @@
 INFO         | Android emulator version 37.2.13.0 (build_id 16740729) (CL:N/A)
 INFO         | Graphics backend: gfxstream
-INFO         | Found systemPath /usr/local/lib/android/sdk/system-images/android-34/google_apis/x86_64/
+INFO         | Found systemPath /usr/local/lib/android/sdk/system-images/android-34/default/x86_64/
 INFO         | Saving last run QEMU version for the AVD to 2
-INFO         | Increasing RAM size to 2560MB
 INFO         | Guest GLES Driver: Auto (ext controls)
 INFO         | emuglConfig_init: vulkan_mode_selected:swiftshader gles_mode_selected:swiftshader
 INFO         | Checking system compatibility:
@@ -14,7 +13,7 @@ INFO         |   Checking: hasSufficientSystem
 INFO         |      Warning: AVD 't' will run more smoothly with 4 CPU cores (currently using 2)
 USER_WARNING | AVD 't' will run more smoothly with 4 CPU cores (currently using 2).
 WARNING      | Feature QuickbootFileBacked is disabled due to stability issues, if you really want that, the environment variable ANDROID_EMU_FORCE_QUICKBOOT_FILE_BACKED need to set to 1
-INFO         | Storing crashdata in: /tmp/android-runner/emu-crash-37.2.13.db, detection is enabled for process: 3123
+INFO         | Storing crashdata in: /tmp/android-runner/emu-crash-37.2.13.db, detection is enabled for process: 2999
 INFO         | Initializing gfxstream backend
 INFO         | startOpenglesRendererImpl: gpu info
 INFO         | 
@@ -53,7 +52,7 @@ INFO         | Graphics API Version OpenGL ES 3.0 (OpenGL ES 3.0 SwiftShader 4.0
 INFO         | Graphics API Extensions GL_OES_EGL_sync GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_depth24 GL_OES_depth32 GL_OES_element_index_uint GL_OES_texture_float GL_OES_texture_float_linear GL_OES_compressed_paletted_texture GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth_texture GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_packed_depth_stencil GL_OES_vertex_half_float GL_OES_standard_derivatives GL_OES_texture_npot GL_OES_rgb8_rgba8 GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_texture_format_BGRA8888 GL_APPLE_texture_format_BGRA8888 
 INFO         | Graphics Device Extensions N/A
 INFO         | Disabling sparse binding feature support
-INFO         | Sending adb public key [QAAAALlNtox3V5jlysXJ5J1TJW2wKSx4UZ91hdb8uOjFh7RC/IGKVdLFXPDcDXWva1WkAI/L12/TD+6rAqh6VVYgBiYxP07dQMBtLsOYp2oJHe/ee5KBQXn9hdJckgJsLhFAyAddtFL6IiJUmi9iuym/Px+9LVcZzeZpF1D4bTQNXbHJMWElQz8LRitwr1R0Ex5LqU6cwJWf07Q6RsWHvPjOxi07x5WxdMrTIs6cmBKyeFyw53qHKm9UiLRZbOFDpBZ8oTbJoqputzF5p7wR28SUeBnJWKSOkeEc7NDhN9fFtANGbTjwyi/8KPrknvFmuKp/MAJ0ck82UrGa2PHvyEmVD5aim+miCSHIY4x0+5ZvqC/TVs/ajrLAqwJE1JrdP8UeyMJuFSyiKU5N9mRXDW5kTgfJkcfjZXB0o0LPwNBtuSiopLZh+6i1VM8nmlVj2HFylZKAbJWqfBlQaUlceNRA7O+2jvz/Trg3HN0jPaWwzRoxeIHne3x9872IVmXCh4J/C6PUvpd1SKHXZyT+OqzDyBJvaTKH2o5Px1i+HgwK/Y4htulbGkappAie3W+QF02Q2u3qCvKFOXYY13YSBE9cGPSvXrymtaq+XKNPUGgWCkpivGS7OOVdsRCAweP5vqD3ka2ZwzywIvWLSXhblCux5ylIUexXBPeK07O7YSpkLedoiL2nogEAAQA= runner@unknown]
+INFO         | Sending adb public key [QAAAAGEpGBVfxdFM9oI02sKX7uanAXcFLFZT5EFMKT++b99DKKZND3AU6dN+oBLfhoVnCEui5TN6GOqDltp35m06dLgxtVr7hqTFNzlBJtEUzOzsKitPxOdjXYxBBHYDJcbTouKKPqCAgJW0IhdG1WQaM0Kwo9swfz8NQ+Ox1vyi9BTub5i+aJ9l3DKZAVdqh9Y6oSCzENOJY/WKQTGQFR9MGTMS6y+ni/5yG/QVlPOUQ3wXbzKTyBa7DVD19NhfpaArhyhZqtjGrIIRicmP8ltdGE7oaZcpl9b7aoguelCJ3xomsUhBmUF1RMma4dGWw5Lx70xvAbYlUXt8rvePyzqeSH4DsVvLXHp+SPv8wdsjUAcN/QLTxfbT0VY6Gmm8bOr1qwG15I5iYsKajhq7blx370GnpdImjT4D51Irojeake51SClZnr3Kmm8MxTASqYYOvi8eo5FvwfssTt3GcVUi1YqrZe+5FAw1VUiimZnl7JQ/WyQxPhik8iXd+J7Kx7ileIjwBXgV1qRcG93F9oDPxyrTMfUK340ZdAfWiSog+1c5q9l2KhktZ2qaFufHI2EGdmJM5V4AShoxLsImjLG2de1RWRXuVVz2bhUCfUsYMPmMv/8qWezjQHzKpvxACHUfiusAvwE+GJG1HOEYAf1rZW9P4lPgMG/9rJ+5EMP4c3Cf9FhVVQEAAQA= runner@unknown]
 INFO         | Userspace boot properties:
 INFO         |   androidboot.boot_devices=pci0000:00/0000:00:03.0 pci0000:00/0000:00:06.0
 INFO         |   androidboot.dalvik.vm.heapsize=576m
@@ -65,7 +64,7 @@ INFO         |   androidboot.hardware.vulkan=ranchu
 INFO         |   androidboot.logcat=*:V
 INFO         |   androidboot.opengles.version=196608
 INFO         |   androidboot.qemu=1
-INFO         |   androidboot.qemu.adb.pubkey=QAAAALlNtox3V5jlysXJ5J1TJW2wKSx4UZ91hdb8uOjFh7RC/IGKVdLFXPDcDXWva1WkAI/L12/TD+6rAqh6VVYgBiYxP07dQMBtLsOYp2oJHe/ee5KBQXn9hdJckgJsLhFAyAddtFL6IiJUmi9iuym/Px+9LVcZzeZpF1D4bTQNXbHJMWElQz8LRitwr1R0Ex5LqU6cwJWf07Q6RsWHvPjOxi07x5WxdMrTIs6cmBKyeFyw53qHKm9UiLRZbOFDpBZ8oTbJoqputzF5p7wR28SUeBnJWKSOkeEc7NDhN9fFtANGbTjwyi/8KPrknvFmuKp/MAJ0ck82UrGa2PHvyEmVD5aim+miCSHIY4x0+5ZvqC/TVs/ajrLAqwJE1JrdP8UeyMJuFSyiKU5N9mRXDW5kTgfJkcfjZXB0o0LPwNBtuSiopLZh+6i1VM8nmlVj2HFylZKAbJWqfBlQaUlceNRA7O+2jvz/Trg3HN0jPaWwzRoxeIHne3x9872IVmXCh4J/C6PUvpd1SKHXZyT+OqzDyBJvaTKH2o5Px1i+HgwK/Y4htulbGkappAie3W+QF02Q2u3qCvKFOXYY13YSBE9cGPSvXrymtaq+XKNPUGgWCkpivGS7OOVdsRCAweP5vqD3ka2ZwzywIvWLSXhblCux5ylIUexXBPeK07O7YSpkLedoiL2nogEAAQA= runner@unknown
+INFO         |   androidboot.qemu.adb.pubkey=QAAAAGEpGBVfxdFM9oI02sKX7uanAXcFLFZT5EFMKT++b99DKKZND3AU6dN+oBLfhoVnCEui5TN6GOqDltp35m06dLgxtVr7hqTFNzlBJtEUzOzsKitPxOdjXYxBBHYDJcbTouKKPqCAgJW0IhdG1WQaM0Kwo9swfz8NQ+Ox1vyi9BTub5i+aJ9l3DKZAVdqh9Y6oSCzENOJY/WKQTGQFR9MGTMS6y+ni/5yG/QVlPOUQ3wXbzKTyBa7DVD19NhfpaArhyhZqtjGrIIRicmP8ltdGE7oaZcpl9b7aoguelCJ3xomsUhBmUF1RMma4dGWw5Lx70xvAbYlUXt8rvePyzqeSH4DsVvLXHp+SPv8wdsjUAcN/QLTxfbT0VY6Gmm8bOr1qwG15I5iYsKajhq7blx370GnpdImjT4D51Irojeake51SClZnr3Kmm8MxTASqYYOvi8eo5FvwfssTt3GcVUi1YqrZe+5FAw1VUiimZnl7JQ/WyQxPhik8iXd+J7Kx7ileIjwBXgV1qRcG93F9oDPxyrTMfUK340ZdAfWiSog+1c5q9l2KhktZ2qaFufHI2EGdmJM5V4AShoxLsImjLG2de1RWRXuVVz2bhUCfUsYMPmMv/8qWezjQHzKpvxACHUfiusAvwE+GJG1HOEYAf1rZW9P4lPgMG/9rJ+5EMP4c3Cf9FhVVQEAAQA= runner@unknown
 INFO         |   androidboot.qemu.avd_name=t
 INFO         |   androidboot.qemu.camera_hq_edge_processing=0
 INFO         |   androidboot.qemu.camera_protocol_ver=1
@@ -80,25 +79,30 @@ INFO         |   androidboot.qemu.skin=1080x2400
 INFO         |   androidboot.qemu.virtiowifi=1
 INFO         |   androidboot.qemu.vsync=60
 INFO         |   androidboot.serialno=EMULATOR37X2X13X0
-INFO         |   androidboot.vbmeta.digest=451e57ed688ff746d2c636d52169ade253e2bc5bb30a5c3ff23679ca15d3bcd3
+INFO         |   androidboot.vbmeta.digest=8bee4f6105b6acd7de887b1ee6629ab07066df02ee9bbca07663adffdad97fc1
 INFO         |   androidboot.vbmeta.hash_alg=sha256
 INFO         |   androidboot.vbmeta.size=6656
 INFO         |   androidboot.veritymode=enforcing
-WARNING: cannnot unmap ptr 0x7f1b68201000 as it is in the protected range from 0x7f1ac8200000 to 0x7f1b68400000
+qemu-system-x86_64-headless: warning: Number of SMP cpus requested (4) exceeds the recommended cpus supported by KVM (2)
+qemu-system-x86_64-headless: warning: Number of hotpluggable cpus requested (4) exceeds the recommended cpus supported by KVM (2)
+WARNING: cannnot unmap ptr 0x7f3f96001000 as it is in the protected range from 0x7f3e96000000 to 0x7f3f96200000
+pc_memory_init: above 4g size: 40000000
 INFO         | Monitoring duration of emulator setup.
 WARNING      | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
 INFO         | Using security allow list from: /usr/local/lib/android/sdk/emulator/lib/emulator_access.json
-INFO         | The active JSON Web Key Sets can be found here: /run/user/1001/avd/running/3123/jwks/a62a7df6-835a-4d74-85a6-d8d6e157f752/active.jwk
-INFO         | Scanning /run/user/1001/avd/running/3123/jwks/a62a7df6-835a-4d74-85a6-d8d6e157f752 for jwk keys.
+INFO         | The active JSON Web Key Sets can be found here: /run/user/1001/avd/running/2999/jwks/f192d6d0-80f3-4292-ae3a-aef3aa556cf8/active.jwk
+INFO         | Scanning /run/user/1001/avd/running/2999/jwks/f192d6d0-80f3-4292-ae3a-aef3aa556cf8 for jwk keys.
 INFO         | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
-INFO         | Advertising in: /run/user/1001/avd/running/pid_3123.ini
-INFO         | Successfully initialized netsim WiFi
+INFO         | Advertising in: /run/user/1001/avd/running/pid_2999.ini
 INFO         | Activated packet streamer for bluetooth emulation
+INFO         | Successfully initialized netsim WiFi
 INFO         | Setting display: 0 configuration to: 1080x2400, dpi: 420x420 
 INFO         | setDisplayActiveConfig: id:0, 1080x2400
 INFO         | emulatorSetupEnvironment: Environment scene is not required
 USER_INFO    | Emulator is performing a full startup. This may take upto two minutes, or more.
 WARNING      | Failed to process .ini file /home/runner/.android/emu-update-last-check.ini for reading.
 WARNING      | Failed to process .ini file /home/runner/.android/emu-update-last-check.ini for reading.
-INFO         | Boot completed in 61482 ms
+INFO         | Boot completed in 45277 ms
 INFO         | Increasing screen off timeout, logcat buffer size to 2M.
+ERROR        | Failed to find ColorBuffer: 119
+ERROR        | Failed to bind to texture: invalid color buffer.

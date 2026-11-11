@@ -1,2 +1,1 @@
-  mCurrentFocus=Window{f9ad3e5 u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity}
-  mCurrentFocus=Window{3e8968e u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity}
+  mCurrentFocus=Window{fea302d u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity}
