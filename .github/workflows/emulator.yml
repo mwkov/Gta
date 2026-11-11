@@ -4,7 +4,7 @@ name: Emulator test
 # swipes, and publishes recordings + measurements to the `test-results` branch.
 on:
   push:
-    branches: [main]
+    branches: [main, baseline]
   workflow_dispatch:
 
 permissions:
@@ -107,9 +107,11 @@ jobs:
           else
             git symbolic-ref HEAD refs/heads/test-results   # first run: start the branch
           fi
-          rm -rf latest && mkdir latest
-          cp -r "$OUT"/. latest/ 2>/dev/null || true
-          { echo "=== run ${{ github.run_number }} commit ${GITHUB_SHA::7} $(date -u +%FT%TZ)"; cat latest/summary.txt 2>/dev/null || echo "(no summary)"; echo; } >> history.txt
+          # main -> latest/, any other branch (e.g. the old version as a baseline) -> its name
+          D=latest; [ "${GITHUB_REF_NAME}" = main ] || D="${GITHUB_REF_NAME}"
+          rm -rf "$D" && mkdir "$D"
+          cp -r "$OUT"/. "$D"/ 2>/dev/null || true
+          { echo "=== run ${{ github.run_number }} ${GITHUB_REF_NAME} commit ${GITHUB_SHA::7} $(date -u +%FT%TZ)"; cat "$D"/summary.txt 2>/dev/null || echo "(no summary)"; echo; } >> history.txt
           git add -A
           git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -q -m "emulator run ${{ github.run_number }} (${GITHUB_SHA::7})"
-          git push -q origin test-results
+          for i in 1 2 3; do git push -q origin test-results && break; git pull -q --rebase origin test-results; done

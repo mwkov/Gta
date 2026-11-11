@@ -87,6 +87,8 @@ public class ShieldService extends AccessibilityService {
     private static final long STOP_POLL_MS = 90;
     private static final long STOP_EVENT_MS = 220;        // > 2 event batches
     private static final float LEAD_MS = 45f;             // stretch covers by speed x this
+    private static final float MAX_LEAD_PX = 160f;
+    private static final float MAX_UNSURE_PX = 60f;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private HandlerThread scanThread;
@@ -1344,8 +1346,11 @@ public class ShieldService extends AccessibilityService {
                 // unsure the tracking is right now, so a small error never shows text.
                 for (Tracker t : trackers) {
                     if (!t.busy(now) || !movesWith(c.clip, t.c)) continue;
-                    float lead = t.ty.velocity() * LEAD_MS;
-                    float unsure = Math.abs(t.ty.error(now)) + 6;
+                    // Capped: right after a big correction the error is briefly large, and
+                    // stretching by all of it flashed covers the height of the whole list.
+                    float lead = Math.max(-MAX_LEAD_PX, Math.min(MAX_LEAD_PX,
+                            t.ty.velocity() * LEAD_MS));
+                    float unsure = Math.min(Math.abs(t.ty.error(now)), MAX_UNSURE_PX) + 6;
                     if (lead < 0) top += lead; else bottom += lead;
                     top -= unsure;
                     bottom += unsure;
