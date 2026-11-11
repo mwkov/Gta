@@ -1,291 +1,333 @@
 --------- beginning of main
-11-11 18:43:28.023   213   213 W tombstoned: skipping tombstone file creation due to intercept
-11-11 18:43:28.153   550  2106 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
+11-11 19:19:34.610   214   214 W tombstoned: skipping tombstone file creation due to intercept
+11-11 19:19:34.713   531  2189 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
 --------- beginning of system
-11-11 18:43:28.154   550  2106 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
-11-11 18:43:28.162   550   575 I ActivityManager: Broadcast completed: result=0
-11-11 18:43:28.246   550   587 I ActivityManager: Start proc 2836:dev.mwkov.shieldtest/u0a142 for next-top-activity {dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity}
-11-11 18:43:28.419  2836  2836 W wkov.shieldtest: Unexpected CPU variant for x86: x86_64.
-11-11 18:43:28.419  2836  2836 W wkov.shieldtest: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
-11-11 18:43:28.472   887   930 W Looper  : Slow delivery took 40ms wmshell.main h=android.os.Handler c=com.android.wm.shell.common.ShellExecutor$$ExternalSyntheticLambda0@32637f6 m=0
-11-11 18:43:28.500   887   930 W Looper  : Drained
-11-11 18:43:28.554   887   937 W Looper  : Slow delivery took 32ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@1ea0099 m=0
-11-11 18:43:28.579   887   937 W Looper  : Drained
-11-11 18:43:28.618  2836  2836 W ziparchive: Unable to open '/data/app/~~pYSukneU1UqNL6DxYVF_dw==/dev.mwkov.shieldtest-ZIyG9KPrDbZAc5OxQvaZEA==/base.dm': No such file or directory
-11-11 18:43:28.618  2836  2836 W ziparchive: Unable to open '/data/app/~~pYSukneU1UqNL6DxYVF_dw==/dev.mwkov.shieldtest-ZIyG9KPrDbZAc5OxQvaZEA==/base.dm': No such file or directory
-11-11 18:43:28.656   550  2783 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10142. pid: 2836
-11-11 18:43:28.780   550  2855 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
-11-11 18:43:28.892   550   550 W AccessibilityManagerService:  wait for adding window timeout: 10
-11-11 18:43:28.893  2836  2836 W OpenGLRenderer: Unknown dataspace 0
-11-11 18:43:28.965   414   426 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
-11-11 18:43:28.968   414   426 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
-11-11 18:43:28.969   414   426 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
-11-11 18:43:29.362  2836  2858 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
-11-11 18:43:29.857   550  2783 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
-11-11 18:43:29.857   550  2783 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
-11-11 18:43:29.857   550  2783 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
-11-11 18:43:29.873   550   575 W ziparchive: Unable to open '/data/app/~~pYSukneU1UqNL6DxYVF_dw==/dev.mwkov.shieldtest-ZIyG9KPrDbZAc5OxQvaZEA==/base.dm': No such file or directory
-11-11 18:43:29.877   550   550 W AccessibilityManagerService:  wait for adding window timeout: 11
-11-11 18:43:30.408   887   939 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@422132a
-11-11 18:43:30.411   550   571 W InputManager-JNI: Input channel object 'f532bf3 Splash Screen dev.mwkov.shieldtest (client)' was disposed without first being removed with the input manager!
-11-11 18:43:30.461   887   939 W FrameTracker: Missed App frame:UNKNOWN: 10, 5749, 165629645, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 10, 5749, 165629645, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missed App frame:UNKNOWN: 74, 5771, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 74, 5771, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missing HWUI jank callback for vsyncId: 5771, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missed App frame:UNKNOWN: 74, 5830, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 74, 5830, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missing HWUI jank callback for vsyncId: 5830, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:30.461   887   939 W FrameTracker: Missing SF jank callback for vsyncId: 5917, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:43:31.241   550  2060 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
-11-11 18:43:35.235   348  2013 W resolv  : SSL_connect ssl error =5, mark 0xf0064: Connection refused
-11-11 18:43:35.235   348  2013 W resolv  : TLS Handshake failed
-11-11 18:43:35.235   348  2013 W resolv  : query failed
-11-11 18:43:35.235   348  2013 W resolv  : validateDnsTlsServer returned 0 for 10.0.2.3
-11-11 18:43:35.235   348  2013 W resolv  : Validation failed
-11-11 18:43:35.942   550  2783 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
-11-11 18:43:35.944   550  2783 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
-11-11 18:43:35.952   550   575 I ActivityManager: Broadcast completed: result=0
-11-11 18:43:36.136   213   213 W tombstoned: skipping tombstone file creation due to intercept
-11-11 18:44:05.258   213   213 W tombstoned: skipping tombstone file creation due to intercept
-11-11 18:44:05.407  3030  3036 W ColorUtils: expected specified color aspects (0:0:0:0)
-11-11 18:44:05.416  3030  3036 W ColorUtils: expected specified color aspects (0:0:0:0)
-11-11 18:44:05.418  3030  3036 W Codec2Client: query -- param skipped: index = 1342179345.
-11-11 18:44:05.418  3030  3036 W Codec2Client: query -- param skipped: index = 2415921170.
-11-11 18:44:05.422   468  2091 W ResourceManagerService: Ignoring request to add new resource entry with value <= 0
-11-11 18:44:05.436   414   414 W SurfaceFlinger: Invalid layer stack -1
-11-11 18:44:05.541   488  3041 E C2SoftAvcEnc: Unable to set air params = 0x1ad
-11-11 18:44:21.702  3030  3054 W MPEG4Writer: 0-duration samples found: 1
-11-11 18:44:21.703  3030  3053 W MPEG4Writer: 0-duration samples found: 1
-11-11 18:44:21.786   550  2783 I ActivityManager: Broadcasting: Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }
-11-11 18:44:21.786   550  2783 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }: 0
-11-11 18:44:21.804   550   575 I ActivityManager: Broadcast completed: result=0
-11-11 18:44:21.851  1636  2026 W MediaProvider: isAppCloneUserPair for user 0: false
-11-11 18:44:24.535   550  2783 I ActivityManager: Force stopping dev.mwkov.shieldtest appid=10142 user=0: from pid 3346
-11-11 18:44:24.538   550  2783 I ActivityManager: Killing 2836:dev.mwkov.shieldtest/u0a142 (adj 0): stop dev.mwkov.shieldtest due to from pid 3346
-11-11 18:44:24.539   550  2783 W ActivityTaskManager: Force removing ActivityRecord{32bd368 u0 dev.mwkov.shieldtest/.ListActivity t9 f}}: app died, no saved state
-11-11 18:44:24.569   550   620 W InputManager-JNI: Input channel object '845bc36 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity (client)' was disposed without first being removed with the input manager!
-11-11 18:44:24.604   550   579 W WindowManager: Failed to deliver inset control state change to w=Window{845bc36 u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
-11-11 18:44:24.604   550   579 W WindowManager: android.os.DeadObjectException
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.animate(WindowAnimator.java:202)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.lambda$new$1(WindowAnimator.java:99)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.$r8$lambda$aHNu1uhcqxihX5NZc4McDDQPAyw(WindowAnimator.java:0)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator$$ExternalSyntheticLambda1.doFrame(R8$$SyntheticClass:0)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1337)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1348)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.view.Choreographer.doCallbacks(Choreographer.java:952)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.view.Choreographer.doFrame(Choreographer.java:878)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1322)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
-11-11 18:44:24.604   550   579 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
-11-11 18:44:24.604   550   579 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
-11-11 18:44:24.729   550   981 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
-11-11 18:44:24.732   550   981 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
-11-11 18:44:24.753   550   579 W WindowManager: Failed to deliver inset control state change to w=Window{845bc36 u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
-11-11 18:44:24.753   550   579 W WindowManager: android.os.DeadObjectException
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace(RootWindowContainer.java:811)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacement(RootWindowContainer.java:756)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacementLoop(WindowSurfacePlacer.java:177)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:126)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:115)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer$Traverser.run(WindowSurfacePlacer.java:57)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
-11-11 18:44:24.753   550   579 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
-11-11 18:44:24.753   550   579 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
-11-11 18:44:24.791   550   575 I ActivityManager: Broadcast completed: result=0
-11-11 18:44:24.803   887   937 W Looper  : Slow delivery took 32ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@1ea0099 m=0
-11-11 18:44:24.804   887   937 W Looper  : Drained
-11-11 18:44:24.978   550  1063 W WindowManager: Exception thrown during dispatchAppVisibility Window{845bc36 u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
-11-11 18:44:24.978   550  1063 W WindowManager: android.os.DeadObjectException
-11-11 18:44:24.978   550  1063 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at android.view.IWindow$Stub$Proxy.dispatchAppVisibility(IWindow.java:546)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.WindowState.sendAppVisibilityToClients(WindowState.java:3271)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.WindowContainer.sendAppVisibilityToClients(WindowContainer.java:1221)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.WindowToken.setClientVisible(WindowToken.java:409)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.ActivityRecord.setClientVisible(ActivityRecord.java:6946)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.ActivityRecord.postApplyAnimation(ActivityRecord.java:5637)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.ActivityRecord.commitVisibility(ActivityRecord.java:5580)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.Transition.finishTransition(Transition.java:1151)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.TransitionController.finishTransition(TransitionController.java:868)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.finishTransition(WindowOrganizerController.java:396)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at android.window.IWindowOrganizerController$Stub.onTransact(IWindowOrganizerController.java:286)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.onTransact(WindowOrganizerController.java:181)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at android.os.Binder.execTransactInternal(Binder.java:1339)
-11-11 18:44:24.978   550  1063 W WindowManager: 	at android.os.Binder.execTransact(Binder.java:1275)
-11-11 18:44:24.980   550   578 W ActivityManager: setHasOverlayUi called on unknown pid: 2836
-11-11 18:44:25.009   887   930 W Looper  : Slow dispatch took 36ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.DefaultTransitionHandler$$ExternalSyntheticLambda7@41d7aab m=0
-11-11 18:44:25.065   414   414 E BpTransactionCompletedListener: Failed to transact (-32)
-11-11 18:44:25.263   550   587 W ActivityManager: Slow operation: 79ms so far, now at startProcess: returned from zygote!
-11-11 18:44:25.264   550   587 W ActivityManager: Slow operation: 79ms so far, now at startProcess: done updating battery stats
-11-11 18:44:25.264   550   587 W ActivityManager: Slow operation: 79ms so far, now at startProcess: building log message
-11-11 18:44:25.264   550   587 I ActivityManager: Start proc 3367:dev.mwkov.shieldtest/u0a142 for next-top-activity {dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity}
-11-11 18:44:25.264   550   587 W ActivityManager: Slow operation: 79ms so far, now at startProcess: starting to update pids map
-11-11 18:44:25.264   550   587 W ActivityManager: Slow operation: 79ms so far, now at startProcess: done updating pids map
-11-11 18:44:25.341  3367  3367 W wkov.shieldtest: Unexpected CPU variant for x86: x86_64.
-11-11 18:44:25.341  3367  3367 W wkov.shieldtest: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
-11-11 18:44:25.475  3367  3367 W ziparchive: Unable to open '/data/app/~~pYSukneU1UqNL6DxYVF_dw==/dev.mwkov.shieldtest-ZIyG9KPrDbZAc5OxQvaZEA==/base.dm': No such file or directory
-11-11 18:44:25.475  3367  3367 W ziparchive: Unable to open '/data/app/~~pYSukneU1UqNL6DxYVF_dw==/dev.mwkov.shieldtest-ZIyG9KPrDbZAc5OxQvaZEA==/base.dm': No such file or directory
-11-11 18:44:25.511   550  3349 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10142. pid: 3367
-11-11 18:44:25.715   550   550 W AccessibilityManagerService:  wait for adding window timeout: 12
-11-11 18:44:25.798  3367  3367 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->isTagEnabled(J)Z (unsupported, reflection, allowed)
-11-11 18:44:25.798  3367  3367 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->traceBegin(JLjava/lang/String;)V (unsupported, reflection, allowed)
-11-11 18:44:25.798  3367  3367 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->traceEnd(J)V (unsupported, reflection, allowed)
-11-11 18:44:25.798  3367  3367 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->asyncTraceBegin(JLjava/lang/String;I)V (unsupported, reflection, allowed)
-11-11 18:44:25.798  3367  3367 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->asyncTraceEnd(JLjava/lang/String;I)V (unsupported, reflection, allowed)
-11-11 18:44:25.839   550   587 I ActivityManager: Start proc 3396:com.android.webview:webview_service/u0a104 for service {com.android.webview/org.chromium.android_webview.services.VariationsSeedServer}
-11-11 18:44:25.865  3396  3396 W webview_service: Unexpected CPU variant for x86: x86_64.
-11-11 18:44:25.865  3396  3396 W webview_service: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
-11-11 18:44:25.872  3396  3396 E webview_service: Not starting debugger since process cannot load the jdwp agent.
-11-11 18:44:25.895  3414  3414 W ocessService0:0: Unexpected CPU variant for x86: x86_64.
-11-11 18:44:25.895  3414  3414 W ocessService0:0: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
-11-11 18:44:25.899  3414  3414 E ocessService0:0: Not starting debugger since process cannot load the jdwp agent.
-11-11 18:44:25.913   550   587 I ActivityManager: Start proc 3414:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {dev.mwkov.shieldtest/org.chromium.content.app.SandboxedProcessService0:0}
-11-11 18:44:25.927   550  3349 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10104. pid: 3396
-11-11 18:44:25.941   550  3349 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 99000. pid: 3414
-11-11 18:44:25.943  3414  3414 W SystemServiceRegistry: No service published for: virtualdevice
-11-11 18:44:25.952  3367  3420 W chromium: [WARNING:dns_config_service_android.cc(115)] Failed to read DnsConfig.
-11-11 18:44:26.011   550   587 I ActivityManager: Start proc 3454:com.android.webview:webview_apk/u0a104 for service {com.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
-11-11 18:44:26.055  3454  3454 W iew:webview_apk: Unexpected CPU variant for x86: x86_64.
-11-11 18:44:26.055  3454  3454 W iew:webview_apk: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
-11-11 18:44:26.067  3454  3454 E iew:webview_apk: Not starting debugger since process cannot load the jdwp agent.
-11-11 18:44:26.093  3367  3437 W cr_media: BLUETOOTH_CONNECT permission is missing.
-11-11 18:44:26.094  3367  3437 W cr_media: registerBluetoothIntentsIfNeeded: Requires BLUETOOTH permission
-11-11 18:44:26.103   550   981 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10104. pid: 3454
-11-11 18:44:26.135  3367  3367 W OpenGLRenderer: Unknown dataspace 0
-11-11 18:44:26.145  3414  3436 W SystemServiceRegistry: No service published for: uimode
-11-11 18:44:26.391  3367  3387 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
-11-11 18:44:26.506  3367  3451 W chromium: [WARNING:display_webview.cc(32)] WebView overlays are enabled!
-11-11 18:44:26.716   550   575 W ziparchive: Unable to open '/data/app/~~pYSukneU1UqNL6DxYVF_dw==/dev.mwkov.shieldtest-ZIyG9KPrDbZAc5OxQvaZEA==/base.dm': No such file or directory
-11-11 18:44:27.319   887   939 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@34ebb4c
-11-11 18:44:27.342   550  2150 W InputManager-JNI: Input channel object 'b6ca45f Splash Screen dev.mwkov.shieldtest (client)' was disposed without first being removed with the input manager!
-11-11 18:44:27.368   887   939 W FrameTracker: Missed App frame:UNKNOWN: 10, 29144, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 10, 29144, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missing HWUI jank callback for vsyncId: 29144, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed App frame:UNKNOWN: 88, 29152, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 88, 29152, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missing HWUI jank callback for vsyncId: 29152, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed App frame:UNKNOWN: 74, 29159, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 74, 29159, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missing HWUI jank callback for vsyncId: 29159, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed App frame:UNKNOWN: 74, 29181, 172536273, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missed SF frame:UNKNOWN: 74, 29181, 172536273, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:27.368   887   939 W FrameTracker: Missing SF jank callback for vsyncId: 29203, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
-11-11 18:44:28.991   550  2060 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
-11-11 18:44:32.966   550  2150 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
-11-11 18:44:32.967   550  2150 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
-11-11 18:44:32.975   550   575 I ActivityManager: Broadcast completed: result=0
-11-11 18:44:33.150   213   213 W tombstoned: skipping tombstone file creation due to intercept
-11-11 18:44:33.256  3367  3367 W wkov.shieldtest: Accessing hidden method Landroid/view/MotionEvent;->getEventTimeNano()J (unsupported, reflection, allowed)
-11-11 18:45:03.227   213   213 W tombstoned: skipping tombstone file creation due to intercept
-11-11 18:45:03.363  3674  3679 W ColorUtils: expected specified color aspects (0:0:0:0)
-11-11 18:45:03.373  3674  3679 W ColorUtils: expected specified color aspects (0:0:0:0)
-11-11 18:45:03.377  3674  3679 W Codec2Client: query -- param skipped: index = 1342179345.
-11-11 18:45:03.377  3674  3679 W Codec2Client: query -- param skipped: index = 2415921170.
-11-11 18:45:03.383   468   941 W ResourceManagerService: Ignoring request to add new resource entry with value <= 0
-11-11 18:45:03.386   414   414 W SurfaceFlinger: Invalid layer stack -1
-11-11 18:45:03.486   488  3684 E C2SoftAvcEnc: Unable to set air params = 0x1ad
-11-11 18:45:19.434  3674  3694 W MPEG4Writer: 0-duration samples found: 1
-11-11 18:45:19.435  3674  3693 W MPEG4Writer: 0-duration samples found: 1
-11-11 18:45:19.537   550   620 I ActivityManager: Broadcasting: Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }
-11-11 18:45:19.538   550   620 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }: 0
-11-11 18:45:19.557   550   575 I ActivityManager: Broadcast completed: result=0
-11-11 18:45:19.610  1636  2026 W MediaProvider: isAppCloneUserPair for user 0: false
-11-11 18:45:22.411   550   620 I ActivityManager: Force stopping dev.mwkov.shieldtest appid=10142 user=0: from pid 3995
-11-11 18:45:22.413   550   620 I ActivityManager: Killing 3367:dev.mwkov.shieldtest/u0a142 (adj 0): stop dev.mwkov.shieldtest due to from pid 3995
-11-11 18:45:22.418   550   620 I ActivityManager: Killing 3414:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a142i0 (adj 0): isolated not needed
-11-11 18:45:22.422   550   620 W ActivityTaskManager: Force removing ActivityRecord{dcf4fb2 u0 dev.mwkov.shieldtest/.WebActivity t10 f}}: app died, no saved state
-11-11 18:45:22.444   550   981 W InputManager-JNI: Input channel object '581048b dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity (client)' was disposed without first being removed with the input manager!
-11-11 18:45:22.493   550   579 W WindowManager: Failed to deliver inset control state change to w=Window{581048b u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity EXITING}
-11-11 18:45:22.493   550   579 W WindowManager: android.os.DeadObjectException
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.animate(WindowAnimator.java:202)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.lambda$new$1(WindowAnimator.java:99)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.$r8$lambda$aHNu1uhcqxihX5NZc4McDDQPAyw(WindowAnimator.java:0)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator$$ExternalSyntheticLambda1.doFrame(R8$$SyntheticClass:0)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1337)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1348)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.view.Choreographer.doCallbacks(Choreographer.java:952)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.view.Choreographer.doFrame(Choreographer.java:878)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1322)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
-11-11 18:45:22.493   550   579 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
-11-11 18:45:22.493   550   579 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
-11-11 18:45:22.561   550   586 W system_server: Long monitor contention with owner binder:550_4 (620) at void com.android.server.am.ActivityManagerService.forceStopPackage(java.lang.String, int, int)(ActivityManagerService.java:3853) waiters=0 in boolean com.android.server.am.BroadcastQueueModernImpl.lambda$new$0(android.os.Message) for 144ms
-11-11 18:45:22.562   550  2150 W system_server: Long monitor contention with owner binder:550_4 (620) at void com.android.server.am.ActivityManagerService.forceStopPackage(java.lang.String, int, int)(ActivityManagerService.java:3853) waiters=1 in void com.android.server.am.ActivityManagerService.serviceDoneExecuting(android.os.IBinder, int, int, int) for 139ms
-11-11 18:45:22.584   550   576 W Looper  : Slow dispatch took 153ms android.ui h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@e0a6e0e m=0
-11-11 18:45:22.585   550  1065 W system_server: Long monitor contention with owner binder:550_4 (620) at void com.android.server.am.ActivityManagerService.forceStopPackage(java.lang.String, int, int)(ActivityManagerService.java:3853) waiters=5 in void com.android.server.am.ActivityManagerService$AppDeathRecipient.binderDied() for 114ms
-11-11 18:45:22.693   550   579 W WindowManager: Failed to deliver inset control state change to w=Window{581048b u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity EXITING}
-11-11 18:45:22.693   550   579 W WindowManager: android.os.DeadObjectException
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace(RootWindowContainer.java:811)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacement(RootWindowContainer.java:756)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacementLoop(WindowSurfacePlacer.java:177)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:126)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:115)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer$Traverser.run(WindowSurfacePlacer.java:57)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
-11-11 18:45:22.693   550   579 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
-11-11 18:45:22.693   550   579 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
-11-11 18:45:22.908   550  1065 W WindowManager: Exception thrown during dispatchAppVisibility Window{581048b u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity EXITING}
-11-11 18:45:22.908   550  1065 W WindowManager: android.os.DeadObjectException
-11-11 18:45:22.908   550  1065 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at android.view.IWindow$Stub$Proxy.dispatchAppVisibility(IWindow.java:546)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.WindowState.sendAppVisibilityToClients(WindowState.java:3271)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.WindowContainer.sendAppVisibilityToClients(WindowContainer.java:1221)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.WindowToken.setClientVisible(WindowToken.java:409)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.ActivityRecord.setClientVisible(ActivityRecord.java:6946)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.ActivityRecord.postApplyAnimation(ActivityRecord.java:5637)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.ActivityRecord.commitVisibility(ActivityRecord.java:5580)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.Transition.finishTransition(Transition.java:1151)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.TransitionController.finishTransition(TransitionController.java:868)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.finishTransition(WindowOrganizerController.java:396)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at android.window.IWindowOrganizerController$Stub.onTransact(IWindowOrganizerController.java:286)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.onTransact(WindowOrganizerController.java:181)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at android.os.Binder.execTransactInternal(Binder.java:1339)
-11-11 18:45:22.908   550  1065 W WindowManager: 	at android.os.Binder.execTransact(Binder.java:1275)
-11-11 18:45:22.912   550   578 W ActivityManager: setHasOverlayUi called on unknown pid: 3367
-11-11 18:45:22.959   414   414 E BpTransactionCompletedListener: Failed to transact (-32)
+11-11 19:19:34.713   531  2189 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
+11-11 19:19:34.718   531   554 I ActivityManager: Broadcast completed: result=0
+11-11 19:19:34.807   531   567 I ActivityManager: Start proc 2864:dev.mwkov.shieldtest/u0a142 for next-top-activity {dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity}
+11-11 19:19:34.987  2864  2864 W wkov.shieldtest: Unexpected CPU variant for x86: x86_64.
+11-11 19:19:34.987  2864  2864 W wkov.shieldtest: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-11 19:19:35.065   531  2881 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-11 19:19:35.149  2864  2864 W ziparchive: Unable to open '/data/app/~~Lpz9Fj24c6jRrZbiVJ_RDA==/dev.mwkov.shieldtest-P-DWI7iPYucFWXxCZQngAg==/base.dm': No such file or directory
+11-11 19:19:35.149  2864  2864 W ziparchive: Unable to open '/data/app/~~Lpz9Fj24c6jRrZbiVJ_RDA==/dev.mwkov.shieldtest-P-DWI7iPYucFWXxCZQngAg==/base.dm': No such file or directory
+11-11 19:19:35.173   531  2757 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10142. pid: 2864
+11-11 19:19:35.317  2864  2864 W OpenGLRenderer: Unknown dataspace 0
+11-11 19:19:35.347   402   628 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
+11-11 19:19:35.350   402   628 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
+11-11 19:19:35.350   402   630 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=2864
+11-11 19:19:35.350   402   630 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=2864
+11-11 19:19:35.352   402   628 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
+11-11 19:19:35.377   531   531 W AccessibilityManagerService:  wait for adding window timeout: 10
+11-11 19:19:35.571  2864  2886 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-11 19:19:35.965   531   544 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10142 pid=0
+11-11 19:19:35.965   531   544 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10142 pid=0
+11-11 19:19:35.965   531   544 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10142 pid=0
+11-11 19:19:35.973   531   554 W ziparchive: Unable to open '/data/app/~~Lpz9Fj24c6jRrZbiVJ_RDA==/dev.mwkov.shieldtest-P-DWI7iPYucFWXxCZQngAg==/base.dm': No such file or directory
+11-11 19:19:35.973   531   531 W AccessibilityManagerService:  wait for adding window timeout: 11
+11-11 19:19:36.094   531   544 W InputMethodManagerService: Ignoring hideSoftInput of uid 10112 : com.android.internal.inputmethod.IInputMethodClient$Stub$Proxy@113251e
+11-11 19:19:36.420   869   925 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@79802ae
+11-11 19:19:36.424   531  2151 W InputManager-JNI: Input channel object '4fe3041 Splash Screen dev.mwkov.shieldtest (client)' was disposed without first being removed with the input manager!
+11-11 19:19:36.471   869   925 W FrameTracker: Missed App frame:UNKNOWN: 10, 5954, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 10, 5954, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missing HWUI jank callback for vsyncId: 5954, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 66, 5969, 66643849, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missed App frame:UNKNOWN: 74, 5998, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 74, 5998, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missing HWUI jank callback for vsyncId: 5998, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missed App frame:UNKNOWN: 74, 6012, 262718465, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:36.471   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 74, 6012, 262718465, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:19:37.774   531  2011 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
+11-11 19:19:40.161   346  1963 W resolv  : SSL_connect ssl error =5, mark 0xf0064: Connection refused
+11-11 19:19:40.161   346  1964 W resolv  : SSL_connect ssl error =5, mark 0xf0064: Connection refused
+11-11 19:19:40.161   346  1964 W resolv  : TLS Handshake failed
+11-11 19:19:40.161   346  1963 W resolv  : TLS Handshake failed
+11-11 19:19:40.161   346  1964 W resolv  : query failed
+11-11 19:19:40.161   346  1963 W resolv  : query failed
+11-11 19:19:40.161   346  1963 W resolv  : validateDnsTlsServer returned 0 for 10.0.2.3
+11-11 19:19:40.161   346  1964 W resolv  : validateDnsTlsServer returned 0 for 10.0.2.4
+11-11 19:19:40.161   346  1963 W resolv  : Validation failed
+11-11 19:19:40.161   346  1964 W resolv  : Validation failed
+11-11 19:19:40.163   346  1965 W resolv  : SSL_connect ssl error =5, mark 0xf0064: Connection refused
+11-11 19:19:40.163   346  1965 W resolv  : TLS Handshake failed
+11-11 19:19:40.163   346  1965 W resolv  : query failed
+11-11 19:19:40.163   346  1965 W resolv  : validateDnsTlsServer returned 0 for 10.0.2.5
+11-11 19:19:40.163   346  1965 W resolv  : Validation failed
+11-11 19:19:42.103   531  2189 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
+11-11 19:19:42.104   531  2189 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
+11-11 19:19:42.111   531   554 I ActivityManager: Broadcast completed: result=0
+11-11 19:19:42.296   214   214 W tombstoned: skipping tombstone file creation due to intercept
+11-11 19:20:11.726   214   214 W tombstoned: skipping tombstone file creation due to intercept
+11-11 19:20:11.826  3058  3063 W ColorUtils: expected specified color aspects (0:0:0:0)
+11-11 19:20:11.835  3058  3063 W ColorUtils: expected specified color aspects (0:0:0:0)
+11-11 19:20:11.838  3058  3063 W Codec2Client: query -- param skipped: index = 1342179345.
+11-11 19:20:11.838  3058  3063 W Codec2Client: query -- param skipped: index = 2415921170.
+11-11 19:20:11.841   449  2238 W ResourceManagerService: Ignoring request to add new resource entry with value <= 0
+11-11 19:20:11.858   402   402 W SurfaceFlinger: Invalid layer stack -1
+11-11 19:20:11.943   457  3068 E C2SoftAvcEnc: Unable to set air params = 0x1ad
+11-11 19:20:27.841  3058  3079 W MPEG4Writer: 0-duration samples found: 1
+11-11 19:20:27.841  3058  3080 W MPEG4Writer: 0-duration samples found: 1
+11-11 19:20:27.894  3058  3060 W GraphicBufferSource: released unpopulated slots: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
+11-11 19:20:27.973   531   968 I ActivityManager: Broadcasting: Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }
+11-11 19:20:27.974   531   968 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }: 0
+11-11 19:20:27.985   531   554 I ActivityManager: Broadcast completed: result=0
+11-11 19:20:28.016  1595  2075 W MediaProvider: isAppCloneUserPair for user 0: false
+11-11 19:20:30.852   531  2757 I ActivityManager: Force stopping dev.mwkov.shieldtest appid=10142 user=0: from pid 3399
+11-11 19:20:30.856   531  2757 I ActivityManager: Killing 2864:dev.mwkov.shieldtest/u0a142 (adj 0): stop dev.mwkov.shieldtest due to from pid 3399
+11-11 19:20:30.856   531  2757 W ActivityTaskManager: Force removing ActivityRecord{7126799 u0 dev.mwkov.shieldtest/.ListActivity t9 f}}: app died, no saved state
+11-11 19:20:30.877   531  2189 W InputManager-JNI: Input channel object 'abf570f dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity (client)' was disposed without first being removed with the input manager!
+11-11 19:20:30.900   531   558 W WindowManager: Failed to deliver inset control state change to w=Window{abf570f u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
+11-11 19:20:30.900   531   558 W WindowManager: android.os.DeadObjectException
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.animate(WindowAnimator.java:202)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.lambda$new$1(WindowAnimator.java:99)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.$r8$lambda$aHNu1uhcqxihX5NZc4McDDQPAyw(WindowAnimator.java:0)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator$$ExternalSyntheticLambda1.doFrame(R8$$SyntheticClass:0)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1337)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1348)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.view.Choreographer.doCallbacks(Choreographer.java:952)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.view.Choreographer.doFrame(Choreographer.java:878)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1322)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
+11-11 19:20:30.900   531   558 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
+11-11 19:20:30.900   531   558 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+11-11 19:20:30.998   531  3402 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
+11-11 19:20:31.023   531  3402 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
+11-11 19:20:31.036   531   554 I ActivityManager: Broadcast completed: result=0
+11-11 19:20:31.069   531   558 W WindowManager: Failed to deliver inset control state change to w=Window{abf570f u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
+11-11 19:20:31.069   531   558 W WindowManager: android.os.DeadObjectException
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace(RootWindowContainer.java:811)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacement(RootWindowContainer.java:756)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacementLoop(WindowSurfacePlacer.java:177)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:126)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:115)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer$Traverser.run(WindowSurfacePlacer.java:57)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
+11-11 19:20:31.069   531   558 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
+11-11 19:20:31.069   531   558 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+11-11 19:20:31.293   531   599 W WindowManager: Exception thrown during dispatchAppVisibility Window{abf570f u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
+11-11 19:20:31.293   531   599 W WindowManager: android.os.DeadObjectException
+11-11 19:20:31.293   531   599 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:20:31.293   531   599 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:20:31.293   531   599 W WindowManager: 	at android.view.IWindow$Stub$Proxy.dispatchAppVisibility(IWindow.java:546)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.WindowState.sendAppVisibilityToClients(WindowState.java:3271)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.sendAppVisibilityToClients(WindowContainer.java:1221)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.WindowToken.setClientVisible(WindowToken.java:409)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.ActivityRecord.setClientVisible(ActivityRecord.java:6946)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.ActivityRecord.postApplyAnimation(ActivityRecord.java:5637)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.ActivityRecord.commitVisibility(ActivityRecord.java:5580)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.Transition.finishTransition(Transition.java:1151)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.TransitionController.finishTransition(TransitionController.java:868)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.finishTransition(WindowOrganizerController.java:396)
+11-11 19:20:31.293   531   599 W WindowManager: 	at android.window.IWindowOrganizerController$Stub.onTransact(IWindowOrganizerController.java:286)
+11-11 19:20:31.293   531   599 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.onTransact(WindowOrganizerController.java:181)
+11-11 19:20:31.293   531   599 W WindowManager: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+11-11 19:20:31.293   531   599 W WindowManager: 	at android.os.Binder.execTransact(Binder.java:1275)
+11-11 19:20:31.294   531   567 I ActivityManager: Start proc 3421:dev.mwkov.shieldtest/u0a142 for next-top-activity {dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity}
+11-11 19:20:31.308   531   599 W WindowManager: Failed to deliver inset control state change to w=Window{abf570f u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity EXITING}
+11-11 19:20:31.308   531   599 W WindowManager: android.os.DeadObjectException
+11-11 19:20:31.308   531   599 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:20:31.308   531   599 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:20:31.308   531   599 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace(RootWindowContainer.java:811)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacement(RootWindowContainer.java:756)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacementLoop(WindowSurfacePlacer.java:177)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:126)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:115)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowState.setupWindowForRemoveOnExit(WindowState.java:2538)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowState.removeIfPossible(WindowState.java:2498)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowToken.removeAllWindowsIfPossible(WindowToken.java:249)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.ActivityRecord.removeIfPossible(ActivityRecord.java:4259)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.ActivityRecord.handleCompleteDeferredRemoval(ActivityRecord.java:4266)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.TaskFragment.handleCompleteDeferredRemoval(TaskFragment.java:2844)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowContainer.handleCompleteDeferredRemoval(WindowContainer.java:1396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.DisplayContent.handleCompleteDeferredRemoval(DisplayContent.java:3382)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.Transition.finishTransition(Transition.java:1322)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.TransitionController.finishTransition(TransitionController.java:868)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.finishTransition(WindowOrganizerController.java:396)
+11-11 19:20:31.308   531   599 W WindowManager: 	at android.window.IWindowOrganizerController$Stub.onTransact(IWindowOrganizerController.java:286)
+11-11 19:20:31.308   531   599 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.onTransact(WindowOrganizerController.java:181)
+11-11 19:20:31.308   531   599 W WindowManager: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+11-11 19:20:31.308   531   599 W WindowManager: 	at android.os.Binder.execTransact(Binder.java:1275)
+11-11 19:20:31.319   869   907 W Looper  : Slow dispatch took 30ms wmshell.main h=android.os.Handler c=com.android.wm.shell.transition.DefaultTransitionHandler$$ExternalSyntheticLambda7@c1a9c4 m=0
+11-11 19:20:31.319   531   567 W ActivityManager: Slow operation: 55ms so far, now at startProcess: done updating pids map
+11-11 19:20:31.320   531   557 W ActivityManager: setHasOverlayUi called on unknown pid: 2864
+11-11 19:20:31.443  3421  3421 W wkov.shieldtest: Unexpected CPU variant for x86: x86_64.
+11-11 19:20:31.443  3421  3421 W wkov.shieldtest: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-11 19:20:31.557   869   921 W Looper  : Slow delivery took 32ms wmshell.anim h=android.view.Choreographer$FrameHandler c=android.view.Choreographer$FrameDisplayEventReceiver@57781f7 m=0
+11-11 19:20:31.559   869   921 W Looper  : Drained
+11-11 19:20:31.594   531   558 W system_server: Long monitor contention with owner binder:531_10 (1882) at android.window.TaskSnapshot com.android.server.wm.ActivityTaskManagerService.takeTaskSnapshot(int, boolean)(ActivityTaskManagerService.java:3820) waiters=1 in void com.android.server.wm.WindowAnimator.lambda$new$1(long) for 145ms
+11-11 19:20:31.599   531   599 W system_server: Long monitor contention with owner binder:531_10 (1882) at android.window.TaskSnapshot com.android.server.wm.ActivityTaskManagerService.takeTaskSnapshot(int, boolean)(ActivityTaskManagerService.java:3820) waiters=2 in int com.android.server.wm.ActivityTaskManagerService.getLastResumedActivityUserId() for 145ms
+11-11 19:20:31.599   531  2189 W system_server: Long monitor contention with owner binder:531_10 (1882) at android.window.TaskSnapshot com.android.server.wm.ActivityTaskManagerService.takeTaskSnapshot(int, boolean)(ActivityTaskManagerService.java:3820) waiters=5 in android.content.res.CompatibilityInfo com.android.server.wm.ActivityTaskManagerService$LocalService.compatibilityInfoForPackage(android.content.pm.ApplicationInfo) for 122ms
+11-11 19:20:31.602   531  2189 W ActivityManager: Slow operation: 125ms so far, now at attachApplicationLocked: immediately before bindApplication
+11-11 19:20:31.602   531  2189 W ActivityManager: Slow operation: 125ms so far, now at attachApplicationLocked: immediately after bindApplication
+11-11 19:20:31.602   531  2189 W ActivityManager: Slow operation: 125ms so far, now at attachApplicationLocked: after updateLruProcessLocked
+11-11 19:20:31.664  3421  3421 W ziparchive: Unable to open '/data/app/~~Lpz9Fj24c6jRrZbiVJ_RDA==/dev.mwkov.shieldtest-P-DWI7iPYucFWXxCZQngAg==/base.dm': No such file or directory
+11-11 19:20:31.665  3421  3421 W ziparchive: Unable to open '/data/app/~~Lpz9Fj24c6jRrZbiVJ_RDA==/dev.mwkov.shieldtest-P-DWI7iPYucFWXxCZQngAg==/base.dm': No such file or directory
+11-11 19:20:31.687   531  2664 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10142. pid: 3421
+11-11 19:20:31.830   402   402 E BpTransactionCompletedListener: Failed to transact (-32)
+11-11 19:20:31.832   531   531 W AccessibilityManagerService:  wait for adding window timeout: 12
+11-11 19:20:31.897  3421  3421 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->isTagEnabled(J)Z (unsupported, reflection, allowed)
+11-11 19:20:31.898  3421  3421 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->traceBegin(JLjava/lang/String;)V (unsupported, reflection, allowed)
+11-11 19:20:31.898  3421  3421 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->traceEnd(J)V (unsupported, reflection, allowed)
+11-11 19:20:31.898  3421  3421 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->asyncTraceBegin(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+11-11 19:20:31.898  3421  3421 W wkov.shieldtest: Accessing hidden method Landroid/os/Trace;->asyncTraceEnd(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+11-11 19:20:31.969   531   567 I ActivityManager: Start proc 3450:com.android.webview:webview_service/u0a103 for service {com.android.webview/org.chromium.android_webview.services.VariationsSeedServer}
+11-11 19:20:31.991  3450  3450 W webview_service: Unexpected CPU variant for x86: x86_64.
+11-11 19:20:31.991  3450  3450 W webview_service: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-11 19:20:32.003  3450  3450 E webview_service: Not starting debugger since process cannot load the jdwp agent.
+11-11 19:20:32.007   531   567 I ActivityManager: Start proc 3463:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {dev.mwkov.shieldtest/org.chromium.content.app.SandboxedProcessService0:0}
+11-11 19:20:32.027  3463  3463 W ocessService0:0: Unexpected CPU variant for x86: x86_64.
+11-11 19:20:32.027  3463  3463 W ocessService0:0: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-11 19:20:32.031  3463  3463 E ocessService0:0: Not starting debugger since process cannot load the jdwp agent.
+11-11 19:20:32.035   531  2189 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10103. pid: 3450
+11-11 19:20:32.059  3421  3469 W chromium: [WARNING:dns_config_service_android.cc(115)] Failed to read DnsConfig.
+11-11 19:20:32.068   531   599 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 99000. pid: 3463
+11-11 19:20:32.069  3463  3463 W SystemServiceRegistry: No service published for: virtualdevice
+11-11 19:20:32.119   531   567 I ActivityManager: Start proc 3508:com.android.webview:webview_apk/u0a103 for service {com.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
+11-11 19:20:32.137  3508  3508 W iew:webview_apk: Unexpected CPU variant for x86: x86_64.
+11-11 19:20:32.137  3508  3508 W iew:webview_apk: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-11 19:20:32.142  3508  3508 E iew:webview_apk: Not starting debugger since process cannot load the jdwp agent.
+11-11 19:20:32.159  3421  3490 W cr_media: BLUETOOTH_CONNECT permission is missing.
+11-11 19:20:32.173  3421  3490 W cr_media: registerBluetoothIntentsIfNeeded: Requires BLUETOOTH permission
+11-11 19:20:32.186   531   599 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10103. pid: 3508
+11-11 19:20:32.200  3463  3499 W SystemServiceRegistry: No service published for: uimode
+11-11 19:20:32.220  3421  3421 W OpenGLRenderer: Unknown dataspace 0
+11-11 19:20:32.436  3421  3441 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-11 19:20:32.528  3421  3507 W chromium: [WARNING:display_webview.cc(32)] WebView overlays are enabled!
+11-11 19:20:32.686   531   554 W ziparchive: Unable to open '/data/app/~~Lpz9Fj24c6jRrZbiVJ_RDA==/dev.mwkov.shieldtest-P-DWI7iPYucFWXxCZQngAg==/base.dm': No such file or directory
+11-11 19:20:32.813   869   907 W Looper  : Slow delivery took 34ms wmshell.main h=android.os.Handler c=com.android.wm.shell.bubbles.BubbleController$BubblesImpl$$ExternalSyntheticLambda1@43d5a24 m=0
+11-11 19:20:32.995   869   907 W Looper  : Drained
+11-11 19:20:33.234   869   925 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@65a8cd7
+11-11 19:20:33.240   531  2189 W InputManager-JNI: Input channel object 'd9716f8 Splash Screen dev.mwkov.shieldtest (client)' was disposed without first being removed with the input manager!
+11-11 19:20:33.288   869   925 W FrameTracker: Missed App frame:UNKNOWN: 10, 33638, 115900802, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:33.292   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 10, 33638, 115900802, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:33.292   869   925 W FrameTracker: Missed App frame:UNKNOWN: 74, 33676, 271041856, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:33.292   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 74, 33676, 271041856, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:33.292   869   925 W FrameTracker: Missed App frame:UNKNOWN: 74, 33730, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:33.292   869   925 W FrameTracker: Missed SF frame:UNKNOWN: 74, 33730, 0, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:33.292   869   925 W FrameTracker: Missing HWUI jank callback for vsyncId: 33730, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+11-11 19:20:35.263   531  2011 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
+11-11 19:20:38.755   531  2189 I ActivityManager: Broadcasting: Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }
+11-11 19:20:38.756   531  2189 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.CLOSE_SYSTEM_DIALOGS flg=0x400000 }: 0
+11-11 19:20:38.763   531   554 I ActivityManager: Broadcast completed: result=0
+11-11 19:20:38.897   214   214 W tombstoned: skipping tombstone file creation due to intercept
+11-11 19:20:38.989  3421  3421 W wkov.shieldtest: Accessing hidden method Landroid/view/MotionEvent;->getEventTimeNano()J (unsupported, reflection, allowed)
+11-11 19:21:08.219   214   214 W tombstoned: skipping tombstone file creation due to intercept
+11-11 19:21:08.329  3727  3732 W ColorUtils: expected specified color aspects (0:0:0:0)
+11-11 19:21:08.338  3727  3732 W ColorUtils: expected specified color aspects (0:0:0:0)
+11-11 19:21:08.347  3727  3732 W Codec2Client: query -- param skipped: index = 1342179345.
+11-11 19:21:08.347  3727  3732 W Codec2Client: query -- param skipped: index = 2415921170.
+11-11 19:21:08.351   449  2534 W ResourceManagerService: Ignoring request to add new resource entry with value <= 0
+11-11 19:21:08.360   402   402 W SurfaceFlinger: Invalid layer stack -1
+11-11 19:21:08.436   457  3737 E C2SoftAvcEnc: Unable to set air params = 0x1ad
+11-11 19:21:24.431  3727  3748 W MPEG4Writer: 0-duration samples found: 1
+11-11 19:21:24.431  3727  3747 W MPEG4Writer: 0-duration samples found: 1
+11-11 19:21:24.493   531  2189 I ActivityManager: Broadcasting: Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }
+11-11 19:21:24.494   531  2189 I ActivityManager: Enqueued broadcast Intent { act=android.intent.action.MEDIA_SCANNER_SCAN_FILE dat=file:///... flg=0x400000 }: 0
+11-11 19:21:24.504   531   554 I ActivityManager: Broadcast completed: result=0
+11-11 19:21:24.549  1595  2075 W MediaProvider: isAppCloneUserPair for user 0: false
+11-11 19:21:27.283   531  2189 I ActivityManager: Force stopping dev.mwkov.shieldtest appid=10142 user=0: from pid 4050
+11-11 19:21:27.284   531  2189 I ActivityManager: Killing 3421:dev.mwkov.shieldtest/u0a142 (adj 0): stop dev.mwkov.shieldtest due to from pid 4050
+11-11 19:21:27.286   531  2189 I ActivityManager: Killing 3463:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a142i0 (adj 0): isolated not needed
+11-11 19:21:27.286   531  2189 W ActivityTaskManager: Force removing ActivityRecord{f3d2d3f u0 dev.mwkov.shieldtest/.WebActivity t10 f}}: app died, no saved state
+11-11 19:21:27.349   531   558 E IPCThreadState: Binder transaction failure: 190443/29189/-3
+11-11 19:21:27.349   531   558 W WindowManager: Failed to deliver inset control state change to w=Window{467dd5b u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity}
+11-11 19:21:27.349   531   558 W WindowManager: android.os.DeadObjectException
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.animate(WindowAnimator.java:202)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.lambda$new$1(WindowAnimator.java:99)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.$r8$lambda$aHNu1uhcqxihX5NZc4McDDQPAyw(WindowAnimator.java:0)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator$$ExternalSyntheticLambda1.doFrame(R8$$SyntheticClass:0)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1337)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1348)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.view.Choreographer.doCallbacks(Choreographer.java:952)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.view.Choreographer.doFrame(Choreographer.java:878)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1322)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
+11-11 19:21:27.349   531   558 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
+11-11 19:21:27.349   531   558 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+11-11 19:21:27.356   531   544 W InputManager-JNI: Input channel object '467dd5b dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity (client)' was disposed without first being removed with the input manager!
+11-11 19:21:27.544   531   558 W WindowManager: Failed to deliver inset control state change to w=Window{467dd5b u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity EXITING}
+11-11 19:21:27.544   531   558 W WindowManager: android.os.DeadObjectException
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.view.IWindow$Stub$Proxy.insetsControlChanged(IWindow.java:479)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.WindowState.notifyInsetsControlChanged(WindowState.java:3802)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.lambda$notifyPendingInsetsControlChanged$3(InsetsStateController.java:343)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController.$r8$lambda$8yykPRG1GyNq_J17QvL9d5xANMc(InsetsStateController.java:0)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.InsetsStateController$$ExternalSyntheticLambda2.run(R8$$SyntheticClass:0)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.WindowAnimator.executeAfterPrepareSurfacesRunnables(WindowAnimator.java:294)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace(RootWindowContainer.java:811)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.RootWindowContainer.performSurfacePlacement(RootWindowContainer.java:756)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacementLoop(WindowSurfacePlacer.java:177)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:126)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer.performSurfacePlacement(WindowSurfacePlacer.java:115)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.wm.WindowSurfacePlacer$Traverser.run(WindowSurfacePlacer.java:57)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.Looper.loop(Looper.java:294)
+11-11 19:21:27.544   531   558 W WindowManager: 	at android.os.HandlerThread.run(HandlerThread.java:67)
+11-11 19:21:27.544   531   558 W WindowManager: 	at com.android.server.ServiceThread.run(ServiceThread.java:46)
+11-11 19:21:27.750   531  3402 W WindowManager: Exception thrown during dispatchAppVisibility Window{467dd5b u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.WebActivity EXITING}
+11-11 19:21:27.750   531  3402 W WindowManager: android.os.DeadObjectException
+11-11 19:21:27.750   531  3402 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:584)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at android.view.IWindow$Stub$Proxy.dispatchAppVisibility(IWindow.java:546)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.WindowState.sendAppVisibilityToClients(WindowState.java:3271)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.WindowContainer.sendAppVisibilityToClients(WindowContainer.java:1221)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.WindowToken.setClientVisible(WindowToken.java:409)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.ActivityRecord.setClientVisible(ActivityRecord.java:6946)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.ActivityRecord.postApplyAnimation(ActivityRecord.java:5637)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.ActivityRecord.commitVisibility(ActivityRecord.java:5580)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.Transition.finishTransition(Transition.java:1151)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.TransitionController.finishTransition(TransitionController.java:868)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.finishTransition(WindowOrganizerController.java:396)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at android.window.IWindowOrganizerController$Stub.onTransact(IWindowOrganizerController.java:286)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.onTransact(WindowOrganizerController.java:181)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+11-11 19:21:27.750   531  3402 W WindowManager: 	at android.os.Binder.execTransact(Binder.java:1275)
+11-11 19:21:27.758   531   557 W ActivityManager: setHasOverlayUi called on unknown pid: 3421
+11-11 19:21:27.810   402   402 E BpTransactionCompletedListener: Failed to transact (-32)
