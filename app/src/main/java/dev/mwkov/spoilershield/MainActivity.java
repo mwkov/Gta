@@ -42,6 +42,8 @@ public class MainActivity extends Activity {
     private TextView status;
     private Button openSettings;
     private TextView ignoredSummary;
+    private TextView fastStatus;
+    private Button fastButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +84,32 @@ public class MainActivity extends Activity {
                         + "ColorOS doesn't kill it.", 13, MUTED);
         help.setPadding(0, dp(10), 0, 0);
         statusCard.addView(help);
+
+        // --- Fast mode
+        LinearLayout fast = card(col);
+        TextView fastTitle = text("Fast mode (reads the screen image)", 15, TEXT);
+        fastTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        fast.addView(fastTitle);
+        fastStatus = text("", 14, TEXT);
+        fast.addView(fastStatus);
+        fastButton = button("");
+        fastButton.setOnClickListener(v -> {
+            if (CaptureService.running) {
+                startService(new Intent(this, CaptureService.class)
+                        .setAction(CaptureService.ACTION_STOP));
+            } else {
+                startActivity(new Intent(this, ConsentActivity.class));
+            }
+            fastStatus.postDelayed(this::refreshFast, 600);
+        });
+        fast.addView(fastButton, matchWrap(dp(8)));
+        fast.addView(text("Covers follow the content frame by frame, new spoilers are caught in "
+                + "about a tenth of a second, and text inside pictures is read too (Latin "
+                + "letters).\n\nAndroid shows a capture icon while it runs and asks every time "
+                + "you start it; choose \"Entire screen\". It stops when the phone locks or "
+                + "another app records the screen, and the shield then carries on in normal "
+                + "mode. The \"Shield fast mode\" quick-settings tile restarts it in one tap.",
+                12, MUTED), matchWrap(dp(8)));
 
         // --- Switches
         LinearLayout switches = card(col);
@@ -187,6 +215,15 @@ public class MainActivity extends Activity {
         status.setText(on ? "● Accessibility service is ON" : "● Accessibility service is OFF");
         status.setTextColor(on ? OK : BAD);
         openSettings.setText(on ? "Accessibility settings" : "Turn it on in Accessibility settings");
+        refreshFast();
+        fastStatus.postDelayed(this::refreshFast, 1200);
+    }
+
+    private void refreshFast() {
+        boolean on = CaptureService.running;
+        fastStatus.setText(on ? "● Fast mode is ON" : "● Fast mode is off");
+        fastStatus.setTextColor(on ? OK : MUTED);
+        fastButton.setText(on ? "Stop fast mode" : "Start fast mode");
     }
 
     private void refreshIgnoredSummary() {

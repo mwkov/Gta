@@ -2,7 +2,9 @@ package dev.mwkov.spoilershield;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
+import android.media.Image;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
@@ -17,6 +19,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -81,6 +84,7 @@ public class ShieldService extends AccessibilityService {
     private volatile boolean forceDeep = true;
     private long lastDeepMs;                      // scan thread only
     private boolean deepCut;                      // scan thread only: whole-page read cut short
+    private boolean scanSawIgnored;               // scan thread only
     private List<Rect> scanDeepAreas;             // scan thread only: areas exposing off-screen
     private List<Rect> deepAreas = new ArrayList<>();   // main: areas whose whole page is read
 
@@ -103,6 +107,9 @@ public class ShieldService extends AccessibilityService {
         final RectF r;
         final Rect clip;   // bounds of the scrolling area it lives in, or null if fixed
         final long seq;    // movement counter when this position was read from the app
+        boolean ocr;       // found by reading the screen image (not the app's text)
+        boolean inRegion;  // ocr cover that lives inside the scrolling part of the screen
+        long stickyUntil;  // ocr cover: don't re-check before this time
 
         Cover(RectF r, Rect clip, long seq) {
             this.r = r;
@@ -114,14 +121,27 @@ public class ShieldService extends AccessibilityService {
     /** Movement applied to a scrolling area, kept so late read results can be corrected. */
     private static final class Shift {
         final long seq;
-        final Tracker t;
+        final Tracker t;          // scroll-event source, or null for screen-image tracking
+        final float top, bottom;  // image tracking: the band of the screen that moved
         final float dx, dy;
 
         Shift(long seq, Tracker t, float dx, float dy) {
+            this(seq, t, 0, 0, dx, dy);
+        }
+
+        Shift(long seq, Tracker t, float top, float bottom, float dx, float dy) {
             this.seq = seq;
             this.t = t;
+            this.top = top;
+            this.bottom = bottom;
             this.dx = dx;
             this.dy = dy;
+        }
+
+        boolean moves(Cover c) {
+            if (t != null) return eventMoves(c, t.c);
+            float cy = c.r.centerY();
+            return (c.ocr || c.clip != null) && cy >= top && cy <= bottom;
         }
     }
 
@@ -154,6 +174,7 @@ public class ShieldService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        instance = this;
         wm = getSystemService(WindowManager.class);
         prefs = Prefs.get(this);
         prefs.registerOnSharedPreferenceChangeListener(prefListener);
@@ -222,6 +243,8 @@ public class ShieldService extends AccessibilityService {
             if (!pkg.equals(lastPkg)) {
                 lastPkg = pkg;
                 covers = new ArrayList<>();   // different app: old covers mean nothing
+                markAllDirty();
+                regTop = regBot = -1;
             }
             render();
         }
@@ -328,14 +351,19 @@ public class ShieldService extends AccessibilityService {
         return area <= 0 ? 0 : (float) ((double) w * h / area);
     }
 
+    /** Scroll-event tracking: does a cover belong to the scrolling area `area`? */
+    private static boolean eventMoves(Cover c, Rect area) {
+        if (c.ocr) return area.contains((int) c.r.centerX(), (int) c.r.centerY());
+        return movesWith(c.clip, area);
+    }
+
     private void applyMove(Tracker t, float dx, float dy) {
         if (dx == 0 && dy == 0) return;
-        for (Cover c : covers) if (movesWith(c.clip, t.c)) c.r.offset(dx, dy);
+        if (!eventsDrive()) return;   // the screen image is tracking; it is more exact
+        for (Cover c : covers) if (eventMoves(c, t.c)) c.r.offset(dx, dy);
         t.unX += dx;
         t.unY += dy;
-        if (shifts.size() < MAX_SHIFTS) {
-            shifts.add(new Shift(shiftSeq.incrementAndGet(), t, dx, dy));
-        }
+        logShift(new Shift(shiftSeq.incrementAndGet(), t, dx, dy));
     }
 
     // ------------------------------------------------------------------ per-frame tracking
@@ -402,6 +430,7 @@ public class ShieldService extends AccessibilityService {
             lastDeepMs = scanStartMs;
         }
         deepCut = false;
+        scanSawIgnored = false;
         scanDeepAreas = new ArrayList<>();
         final List<Cover> found = new ArrayList<>();
         Pattern p = pattern;
@@ -434,7 +463,14 @@ public class ShieldService extends AccessibilityService {
         final int errors = scanErrors;
         final boolean deepDone = deepAllowed && !deepCut && errors == 0;
         final List<Rect> areas = scanDeepAreas;
+        final boolean sawIgnored = scanSawIgnored;
         main.post(() -> {
+            ocrBlocked = sawIgnored;
+            if (sawIgnored) {
+                for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) {
+                    if (it.next().ocr) it.remove();
+                }
+            }
             dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits, "
                     + errors + " err, " + (deepDone ? "FULL x" + areas.size() : "visible");
             applyScan(found, startSeq, errors, deepDone, areas);
@@ -459,7 +495,10 @@ public class ShieldService extends AccessibilityService {
         if (pkg != null) {
             String name = pkg.toString();
             // Never cover our own settings screen, so the keyword list stays editable.
-            if (name.equals(getPackageName()) || ignored.contains(name)) return;
+            if (name.equals(getPackageName()) || ignored.contains(name)) {
+                scanSawIgnored = true;
+                return;
+            }
         }
         walk(root, p, out, 0, null);
     }
@@ -589,6 +628,409 @@ public class ShieldService extends AccessibilityService {
         }
     }
 
+    // ============================================================== fast mode (screen image)
+    //
+    // When screen capture is running we get every frame the display shows. From consecutive
+    // frames MotionEstimator measures exactly how far the content scrolled, so covers stay
+    // glued to it; and the parts of the frame that are new get read (text recognition) on a
+    // background thread, which also sees text inside pictures. Frames are never stored.
+
+    static volatile ShieldService instance;
+    private static final float LEAD_MS = 26f;
+    private static final int OCR_PAD = 96;        // extra rows around a region, to keep lines whole
+    private static final int OCR_MIN_ROWS = 240;
+
+    private Image heldImage;                      // latest frame (kept so it can be read later)
+    private MotionEstimator est;
+    private float fscale = 1f;                    // screen px per frame px
+    private boolean captureOn;
+    private int lastKind = MotionEstimator.STATIC;
+    private long lastImgTsNs, lastRigidMs;
+    private float pxV;                            // content speed, screen px per ms (+ = down)
+    private int regTop = -1, regBot = -1;         // frame rows that scroll (remembered)
+    private boolean[] dirty;                      // frame rows not read yet
+    private List<Rect> lastDrawn = new ArrayList<>();
+    private int[] maskBuf = new int[4 * 80];
+    private boolean ocrBusy, readerTried;
+    private long ocrSeq;
+    private boolean ocrBlocked;                   // an ignored app (or this one) is on screen
+    private HandlerThread ocrThread;
+    private Handler ocrHandler;
+    private TextReader reader;
+    private final List<float[]> recentDrops = new ArrayList<>();   // l,t,r,b,timeMs
+    private String dbgPx = "fast mode: off", dbgOcr = "ocr: -";
+    private int framesSeen;
+    private long fpsWindowStart;
+    private int fps;
+    private final Runnable pxIdle = () -> {
+        if (pxV != 0) {
+            pxV = 0;
+            render();
+        }
+    };
+
+    private void logShift(Shift s) {
+        shifts.add(s);
+        if (shifts.size() > MAX_SHIFTS) shifts.subList(0, MAX_SHIFTS / 4).clear();
+    }
+
+    /** Scroll events move the covers only when the screen image can't. */
+    private boolean eventsDrive() {
+        return !captureOn || lastKind == MotionEstimator.BLIND;
+    }
+
+    private boolean ocrBlocked() {
+        return ocrBlocked || lastPkg.equals(getPackageName()) || ignored.contains(lastPkg);
+    }
+
+    private void markAllDirty() {
+        if (dirty != null) java.util.Arrays.fill(dirty, true);
+    }
+
+    /** Called by CaptureService on the main thread for every new frame. Takes the image. */
+    void onFrame(Image img) {
+        if (heldImage != null) heldImage.close();
+        heldImage = img;
+        if (!enabled) {
+            captureOn = false;
+            return;
+        }
+        final int w = img.getWidth(), h = img.getHeight();
+        Image.Plane plane = img.getPlanes()[0];
+        ByteBuffer buf = plane.getBuffer();
+        int stride = plane.getRowStride();
+        readScreenBounds(screenMain);
+        if (screenMain.isEmpty()) return;
+        fscale = screenMain.height() / (float) h;
+        if (Math.abs(screenMain.width() / (float) w - fscale) > 0.03f) {
+            captureOn = false;                    // mid-rotation: wait for a matching frame
+            dbgPx = "fast mode: waiting (size mismatch)";
+            return;
+        }
+        if (est == null || est.w != w || est.h != h || est.stride != stride) {
+            est = new MotionEstimator(w, h, stride);
+            dirty = new boolean[h];
+            markAllDirty();
+            regTop = regBot = -1;
+        }
+        if (!captureOn) {
+            captureOn = true;
+            for (Tracker t : trackers) t.unX = t.unY = 0;
+        }
+
+        est.process(buf, maskBuf, buildMasks(w, h));
+        long now = SystemClock.uptimeMillis();
+        long ts = img.getTimestamp();
+        float dtMs = lastImgTsNs == 0 ? 0 : (ts - lastImgTsNs) / 1_000_000f;
+        lastImgTsNs = ts;
+        lastKind = est.kind;
+
+        if (est.kind == MotionEstimator.RIGID) {
+            if (regTop < 0) {
+                regTop = est.y0;
+                regBot = est.y1;
+            } else {
+                regTop = Math.min(regTop, est.y0);
+                regBot = Math.max(regBot, est.y1);
+            }
+            float d = est.dyf * fscale;
+            float top = regTop * fscale, bottom = (regBot + 1) * fscale;
+            for (Cover c : covers) {
+                float cy = c.r.centerY();
+                if ((c.ocr || c.clip != null) && cy >= top && cy <= bottom) c.r.offset(0, d);
+            }
+            logShift(new Shift(shiftSeq.incrementAndGet(), null, top, bottom, 0, d));
+            if (dtMs > 2 && dtMs < 120) {
+                float v = d / dtMs;
+                pxV = pxV == 0 ? v : 0.5f * pxV + 0.5f * v;
+            }
+            lastRigidMs = now;
+            for (Cover c : covers) {
+                if (c.ocr && !c.inRegion && c.r.centerY() >= top && c.r.centerY() <= bottom) {
+                    c.inRegion = true;
+                }
+            }
+            shiftDirty(regTop, regBot, est.dy);
+            for (int y = est.y0; y <= est.y1; y++) if (est.residual[y]) dirty[y] = true;
+            dropScrolledOut();
+        } else if (est.kind == MotionEstimator.NONRIGID) {
+            pxV = 0;
+            for (int y = 0; y < h; y++) {
+                if (est.changedBins[y] == 0) continue;
+                int a = Math.max(0, y - 8), b = Math.min(h - 1, y + 8);
+                for (int k = a; k <= b; k++) dirty[k] = true;
+            }
+            if (est.changedRows > h * 6 / 10) regTop = regBot = -1;   // a different screen
+            if (now - lastRigidMs > 150) dropChangedCovers(now);
+        } else {
+            pxV = 0;
+        }
+
+        framesSeen++;
+        if (now - fpsWindowStart >= 1000) {
+            fps = framesSeen;
+            framesSeen = 0;
+            fpsWindowStart = now;
+        }
+        if (debug) {
+            String[] k = {"still", "SCROLL", "change", "BLIND"};
+            dbgPx = "fast mode: " + k[est.kind] + " dy=" + Math.round(est.dyf * 10) / 10f
+                    + " band=" + regTop + "-" + regBot + " v=" + Math.round(pxV * 1000)
+                    + "px/s " + fps + "fps";
+        }
+        kickOcr();
+        render();
+        main.removeCallbacks(pxIdle);
+        main.postDelayed(pxIdle, 70);
+    }
+
+    void onCaptureStopped() {
+        if (heldImage != null) {
+            try {
+                heldImage.close();
+            } catch (RuntimeException ignored) {
+            }
+            heldImage = null;
+        }
+        captureOn = false;
+        est = null;
+        pxV = 0;
+        lastImgTsNs = 0;
+        regTop = regBot = -1;
+        dbgPx = "fast mode: off";
+        // Covers found in the image can't be re-checked without it.
+        for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) if (it.next().ocr) it.remove();
+        render();
+        scheduleScan(0);
+    }
+
+    /** Where our own overlay is drawn, in frame pixels, so the tracker ignores it. */
+    private int buildMasks(int w, int h) {
+        int n = 0;
+        int grow = 6 + (int) (Math.abs(pxV) * 45 / fscale);
+        for (Rect r : lastDrawn) {
+            if (n >= maskBuf.length / 4) break;
+            maskBuf[n * 4] = (int) (r.left / fscale) - 6;
+            maskBuf[n * 4 + 1] = (int) (r.top / fscale) - grow;
+            maskBuf[n * 4 + 2] = (int) (r.right / fscale) + 6;
+            maskBuf[n * 4 + 3] = (int) (r.bottom / fscale) + grow;
+            n++;
+        }
+        if (debug && overlay != null && n < maskBuf.length / 4) {
+            maskBuf[n * 4] = 0;
+            maskBuf[n * 4 + 1] = (int) (overlay.debugTop() / fscale) - 2;
+            maskBuf[n * 4 + 2] = w;
+            maskBuf[n * 4 + 3] = (int) (overlay.debugBottom() / fscale) + 2;
+            n++;
+        }
+        return n;
+    }
+
+    /** Content in rows a..b moved by dy: the "not read yet" marks move with it. */
+    private void shiftDirty(int a, int b, int dy) {
+        if (dy == 0 || dirty == null) return;
+        if (dy < 0) {
+            for (int y = a; y <= b; y++) dirty[y] = y - dy > b || dirty[y - dy];
+        } else {
+            for (int y = b; y >= a; y--) dirty[y] = y - dy < a || dirty[y - dy];
+        }
+    }
+
+    private void dropScrolledOut() {
+        float top = regTop * fscale, bottom = (regBot + 1) * fscale;
+        for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) {
+            Cover c = it.next();
+            if (!c.ocr) continue;
+            if (c.r.bottom < 0 || c.r.top > screenMain.bottom
+                    || (c.inRegion && (c.r.bottom <= top || c.r.top >= bottom))) {
+                it.remove();
+            }
+        }
+    }
+
+    /**
+     * The screen changed without scrolling. If the area right around an image-found cover
+     * changed, what it was hiding is probably gone: remove it and re-read that spot.
+     */
+    private void dropChangedCovers(long now) {
+        int h = est.h, binW = est.w / MotionEstimator.BINS;
+        for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) {
+            Cover c = it.next();
+            if (!c.ocr || now < c.stickyUntil) continue;
+            int t = (int) (c.r.top / fscale), b = (int) (c.r.bottom / fscale);
+            int b0 = Math.max(0, (int) (c.r.left / fscale) / binW - 1);
+            int b1 = Math.min(MotionEstimator.BINS - 1, (int) (c.r.right / fscale) / binW + 1);
+            int mask = 0;
+            for (int k = b0; k <= b1; k++) mask |= 1 << k;
+            int rows = 0, changed = 0;
+            for (int y = Math.max(0, t - 24); y <= Math.min(h - 1, b + 24); y++) {
+                if (y >= t - 4 && y <= b + 4) continue;   // under the cover: can't see it
+                rows++;
+                if ((est.changedBins[y] & mask) != 0) changed++;
+            }
+            if (rows >= 8 && changed * 10 >= rows * 4) {
+                recentDrops.add(new float[]{c.r.left, c.r.top, c.r.right, c.r.bottom, now});
+                for (int y = Math.max(0, t - 12); y <= Math.min(h - 1, b + 12); y++) dirty[y] = true;
+                it.remove();
+            }
+        }
+        for (Iterator<float[]> it = recentDrops.iterator(); it.hasNext(); ) {
+            if (now - (long) it.next()[4] > 2500) it.remove();
+        }
+    }
+
+    /** Start reading the not-yet-read part of the latest frame, if the reader is free. */
+    private void kickOcr() {
+        if (ocrBusy || heldImage == null || dirty == null || est == null) return;
+        if (reader == null) {
+            if (readerTried) return;
+            readerTried = true;
+            try {
+                reader = (TextReader) Class.forName("dev.mwkov.spoilershield.MlKitReader")
+                        .getDeclaredConstructor().newInstance();
+                ocrThread = new HandlerThread("shield-ocr");
+                ocrThread.start();
+                ocrHandler = new Handler(ocrThread.getLooper());
+            } catch (Throwable e) {
+                dbgOcr = "ocr: unavailable (" + e.getClass().getSimpleName() + ")";
+                return;
+            }
+        }
+        final Pattern p = pattern;
+        if (p == null) return;
+        final int w = est.w, h = est.h, stride = est.stride;
+        if (ocrBlocked()) {
+            java.util.Arrays.fill(dirty, false);
+            return;
+        }
+        // Not-yet-read rows come in runs (new strip at an edge, a picture that loaded...).
+        // Read the biggest run now; the others follow on the next rounds.
+        int a = -1, b = -1, runA = -1, last = -1;
+        for (int y = 0; y <= h; y++) {
+            boolean d = y < h && dirty[y];
+            if (d) {
+                if (runA < 0) runA = y;
+                last = y;
+            }
+            if (runA >= 0 && (y == h || (!d && y - last > 2 * OCR_PAD))) {
+                if (a < 0 || last - runA > b - a) {
+                    a = runA;
+                    b = last;
+                }
+                runA = -1;
+            }
+        }
+        if (a < 0) return;
+        final int dirtyA = a, dirtyB = b;
+        a = Math.max(0, a - OCR_PAD);
+        b = Math.min(h - 1, b + OCR_PAD);
+        if (b - a + 1 < OCR_MIN_ROWS) {
+            int need = OCR_MIN_ROWS - (b - a + 1);
+            a = Math.max(0, a - need / 2);
+            b = Math.min(h - 1, a + OCR_MIN_ROWS - 1);
+            a = Math.max(0, b - OCR_MIN_ROWS + 1);
+        }
+        final int rows = b - a + 1, top = a;
+        final byte[] px = new byte[rows * stride];
+        try {
+            ByteBuffer src = heldImage.getPlanes()[0].getBuffer().duplicate();
+            src.position(Math.min(src.limit(), a * stride));
+            src.get(px, 0, Math.min(px.length, src.remaining()));
+        } catch (RuntimeException e) {
+            return;   // image went away; the next frame will retry
+        }
+        for (int y = dirtyA; y <= dirtyB; y++) dirty[y] = false;
+        final long seq = shiftSeq.get();
+        final long t0 = SystemClock.uptimeMillis();
+        ocrBusy = true;
+        ocrSeq = seq;
+        ocrHandler.post(() -> {
+            final List<RectF> hits = new ArrayList<>();
+            int blocks = -1;
+            try {
+                blocks = readText(px, w, rows, stride, top, p, hits);
+            } catch (Throwable ignored) {
+            }
+            final int nBlocks = blocks;
+            main.post(() -> onOcr(hits, seq, nBlocks, top, top + rows - 1,
+                    SystemClock.uptimeMillis() - t0));
+        });
+    }
+
+    /** OCR thread. @return number of text blocks seen; hit boxes are in frame pixels. */
+    private int readText(byte[] px, int w, int rows, int stride, int top, Pattern p,
+            List<RectF> hits) throws Exception {
+        Bitmap bmp = Bitmap.createBitmap(stride / 4, rows, Bitmap.Config.ARGB_8888);
+        bmp.copyPixelsFromBuffer(ByteBuffer.wrap(px));
+        // Text recognition gets slower with size and doesn't need full resolution.
+        float ds = w > 900 ? 720f / w : 1f;
+        Bitmap use = bmp;
+        if (ds < 1f || stride / 4 != w) {
+            android.graphics.Matrix m = new android.graphics.Matrix();
+            m.setScale(ds, ds);
+            use = Bitmap.createBitmap(bmp, 0, 0, w, rows, m, true);
+            bmp.recycle();
+        }
+        List<TextReader.Block> blocks = reader.read(use);
+        use.recycle();
+        for (TextReader.Block b : blocks) {
+            if (b.text == null || !p.matcher(b.text).find()) continue;
+            hits.add(new RectF(b.box.left / ds, b.box.top / ds + top,
+                    b.box.right / ds, b.box.bottom / ds + top));
+        }
+        return blocks.size();
+    }
+
+    private void onOcr(List<RectF> hits, long seq, int blocks, int rowA, int rowB, long took) {
+        ocrBusy = false;
+        if (debug) {
+            dbgOcr = "ocr: " + took + "ms rows " + rowA + "-" + rowB + ", "
+                    + (blocks < 0 ? "FAILED" : blocks + " blocks") + ", " + hits.size() + " hits";
+        }
+        if (!captureOn) return;
+        if (ocrBlocked()) hits.clear();
+        long now = SystemClock.uptimeMillis();
+        float pad = 14;
+        float regT = regTop * fscale, regB = (regBot + 1) * fscale;
+        for (RectF f : hits) {
+            RectF r = new RectF(f.left * fscale - pad, f.top * fscale - pad,
+                    f.right * fscale + pad, f.bottom * fscale + pad);
+            Cover c = new Cover(r, null, seq);
+            c.ocr = true;
+            // Bring it from "where it was in that frame" to where that content is now.
+            for (Shift s : shifts) if (s.seq > seq && s.moves(c)) c.r.offset(s.dx, s.dy);
+            c.inRegion = regTop >= 0 && c.r.centerY() >= regT && c.r.centerY() <= regB;
+
+            boolean merged = false;
+            for (Cover old : covers) {
+                if (!RectF.intersects(old.r, c.r)) continue;
+                if (old.ocr) {
+                    old.r.union(c.r);
+                    merged = true;
+                    break;
+                }
+                // Already inside a cover placed from the app's own text?
+                float iw = Math.min(old.r.right, c.r.right) - Math.max(old.r.left, c.r.left);
+                float ih = Math.min(old.r.bottom, c.r.bottom) - Math.max(old.r.top, c.r.top);
+                if (iw * ih >= 0.7f * c.r.width() * c.r.height()) {
+                    merged = true;
+                    break;
+                }
+            }
+            if (merged) continue;
+            for (float[] d : recentDrops) {
+                if (c.r.intersects(d[0], d[1], d[2], d[3])) {
+                    c.stickyUntil = now + 15000;   // it came straight back: stop re-checking
+                    break;
+                }
+            }
+            covers.add(c);
+            armed = true;
+        }
+        kickOcr();   // more may have scrolled in meanwhile
+        render();
+    }
+
     // ------------------------------------------------------------------ results (main thread)
 
     private void applyScan(List<Cover> found, long startSeq, int errors, boolean deepDone,
@@ -598,8 +1040,10 @@ public class ShieldService extends AccessibilityService {
         boolean incomplete = errors > 0 && incompleteStreak < 6;
         incompleteStreak = errors > 0 ? incompleteStreak + 1 : 0;
         List<Cover> keep = new ArrayList<>();
+        for (Cover old : covers) if (old.ocr) keep.add(old);   // not this reader's to remove
         if (incomplete) {
             for (Cover old : covers) {
+                if (old.ocr) continue;
                 boolean refound = false;
                 for (Cover c : found) {
                     if (RectF.intersects(old.r, c.r)) {
@@ -614,7 +1058,7 @@ public class ShieldService extends AccessibilityService {
             // that is still scrolled out of view stay where they are.
             RectF clipF = new RectF();
             for (Cover old : covers) {
-                if (old.clip == null) continue;
+                if (old.ocr || old.clip == null) continue;
                 clipF.set(old.clip);
                 if (!RectF.intersects(old.r, clipF)) keep.add(old);
             }
@@ -624,16 +1068,19 @@ public class ShieldService extends AccessibilityService {
         for (Shift s : shifts) {
             if (s.seq <= startSeq) continue;
             for (Cover c : found) {
-                if (s.seq > c.seq && movesWith(c.clip, s.t.c)) c.r.offset(s.dx, s.dy);
+                if (s.seq > c.seq && s.moves(c)) c.r.offset(s.dx, s.dy);
             }
         }
+        // Forget movement nobody needs any more (a text read in flight still needs its part).
+        long pruneTo = Math.min(startSeq, ocrBusy ? ocrSeq : Long.MAX_VALUE);
         for (Iterator<Shift> it = shifts.iterator(); it.hasNext(); ) {
-            if (it.next().seq <= startSeq) it.remove();
+            if (it.next().seq <= pruneTo) it.remove();
         }
         // Whatever moved after this read began is still unverified; everything before is read.
         if (!incomplete) {
             for (Tracker t : trackers) t.unX = t.unY = 0;
             for (Shift s : shifts) {
+                if (s.t == null || s.seq <= startSeq) continue;
                 s.t.unX += s.dx;
                 s.t.unY += s.dy;
             }
@@ -666,6 +1113,7 @@ public class ShieldService extends AccessibilityService {
     }
 
     private void resetTracking() {
+        markAllDirty();
         trackers.clear();
         shifts.clear();
         covers = new ArrayList<>();
@@ -678,14 +1126,30 @@ public class ShieldService extends AccessibilityService {
         List<Rect> labeled = new ArrayList<>(covers.size());
         List<Rect> plain = new ArrayList<>(2);
         if (enabled) {
+            boolean px = !eventsDrive();
+            float regT = regTop * fscale, regB = (regBot + 1) * fscale;
+            // The overlay reaches the display a couple of frames after the content moved:
+            // stretch covers a little in the direction of travel so nothing peeks out.
+            float lead = px ? pxV * LEAD_MS : 0;
             for (Cover c : covers) {
-                Rect r = new Rect(Math.round(c.r.left), Math.round(c.r.top),
-                        Math.round(c.r.right), Math.round(c.r.bottom));
+                float top = c.r.top, bottom = c.r.bottom;
+                boolean moving = px && regTop >= 0 && (c.ocr ? c.inRegion : c.clip != null)
+                        && c.r.centerY() >= regT && c.r.centerY() <= regB;
+                if (moving && lead != 0) {
+                    if (lead < 0) top += lead; else bottom += lead;
+                    top -= 4;
+                    bottom += 4;
+                }
+                Rect r = new Rect(Math.round(c.r.left), Math.round(top),
+                        Math.round(c.r.right), Math.round(bottom));
                 if (c.clip != null && !r.intersect(c.clip)) continue;
+                if (c.ocr && c.inRegion && regTop >= 0
+                        && !r.intersect(0, Math.round(regT), 1 << 20, Math.round(regB))) continue;
                 if (!screenMain.isEmpty() && !r.intersect(screenMain)) continue;
                 labeled.add(r);
             }
-            if (edgeCurtain && armed) {
+            lastDrawn = labeled;
+            if (edgeCurtain && armed && !px) {
                 for (Tracker t : trackers) {
                     if (wholePageRead(t.c)) continue;   // everything coming is already known
                     // Strip of content that entered since the last completed read (+ a little
@@ -712,7 +1176,7 @@ public class ShieldService extends AccessibilityService {
             }
             overlay.setDebug(dbgScan + "\n" + dbgScroll + "\ntracking " + active + "/"
                     + trackers.size() + " v=" + Math.round(v * 1000) + "px/s armed="
-                    + (armed ? "Y" : "N"));
+                    + (armed ? "Y" : "N") + "\n" + dbgPx + "\n" + dbgOcr);
         } else {
             overlay.setDebug(null);
         }
@@ -733,6 +1197,10 @@ public class ShieldService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        instance = null;
+        onCaptureStopped();
+        if (ocrThread != null) ocrThread.quitSafely();
+        if (reader != null) reader.close();
         main.removeCallbacksAndMessages(null);
         if (framesRunning) Choreographer.getInstance().removeFrameCallback(frameCallback);
         if (scanThread != null) scanThread.quitSafely();

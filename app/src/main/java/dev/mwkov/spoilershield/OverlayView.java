@@ -55,6 +55,14 @@ final class OverlayView extends View {
         invalidate();
     }
 
+    float debugTop() {
+        return 34 * density;
+    }
+
+    float debugBottom() {
+        return 34 * density + dbgPaint.getTextSize() * 1.3f * 5 + 6 * density;
+    }
+
     void setDebug(String text) {
         if (text == null ? debugText == null : text.equals(debugText)) return;
         debugText = text;
