@@ -86,6 +86,7 @@ public class ShieldService extends AccessibilityService {
     private static final long STOP_POLL_MS = 90;
     private static final long STOP_EVENT_MS = 220;        // > 2 event batches
     private static final float LEAD_MS = 45f;             // stretch covers by speed x this
+    private static final long SOURCE_RECHECK_MS = 500;
     private static final float MAX_LEAD_PX = 160f;
     private static final float MAX_UNSURE_PX = 60f;
 
@@ -137,6 +138,7 @@ public class ShieldService extends AccessibilityService {
     private List<Cover> covers = new ArrayList<>();
     private final List<Shift> shifts = new ArrayList<>();
     private final List<Tracker> trackers = new ArrayList<>();
+    private final java.util.HashMap<String, Source> sources = new java.util.HashMap<>();
     private final Rect screenMain = new Rect();
     private boolean armed;
     private boolean framesRunning;
@@ -174,6 +176,17 @@ public class ShieldService extends AccessibilityService {
             this.t = t;
             this.dx = dx;
             this.dy = dy;
+        }
+    }
+
+    /** Where a kind of scroll event comes from (see onAccessibilityEvent). */
+    private static final class Source {
+        final Rect c;
+        long checkedAt;
+
+        Source(Rect c, long checkedAt) {
+            this.c = new Rect(c);
+            this.checkedAt = checkedAt;
         }
     }
 
@@ -359,13 +372,27 @@ public class ShieldService extends AccessibilityService {
             // Which list scrolled is only known by asking the app (getSource is a request
             // answered on its main thread). Never ask from here: a busy app would freeze our
             // main thread, and with it every cover's movement. Ask on the event thread.
+            // Once learned, the list is recognised from the event itself (window, kind of
+            // view, direction), so movement is applied at once; the app is asked again now
+            // and then to confirm (or when an unknown list scrolls).
             final long arrived = SystemClock.uptimeMillis();
             final AccessibilityEvent copy = Build.VERSION.SDK_INT >= 30
                     ? new AccessibilityEvent(event) : AccessibilityEvent.obtain(event);
-            if (eventHandler != null) eventHandler.post(() -> resolveScroll(copy, arrived));
+            final String key = sourceKey(copy);
+            Source known = sources.get(key);
+            if (known != null) {
+                onScrolled(copy, new Rect(known.c), arrived);
+                if (arrived - known.checkedAt > SOURCE_RECHECK_MS && eventHandler != null) {
+                    known.checkedAt = arrived;
+                    eventHandler.post(() -> resolveScroll(copy, arrived, key, false));
+                }
+            } else if (eventHandler != null) {
+                eventHandler.post(() -> resolveScroll(copy, arrived, key, true));
+            }
         } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // New screen: tracking from the old one no longer applies.
             trackers.clear();
+            sources.clear();
             shifts.clear();
             deepAreas = new ArrayList<>();
             forceDeep = true;
@@ -395,7 +422,15 @@ public class ShieldService extends AccessibilityService {
     }
 
     /** Event thread: find out which list scrolled, then continue on main. */
-    private void resolveScroll(AccessibilityEvent event, long arrived) {
+    private static String sourceKey(AccessibilityEvent e) {
+        boolean sideways = Build.VERSION.SDK_INT >= 28
+                && e.getScrollDeltaX() != 0 && e.getScrollDeltaX() != -1;
+        return e.getWindowId() + "|" + e.getClassName() + "|" + (sideways ? "x" : "y");
+    }
+
+    /** @param apply false = the movement was already applied; only confirm the list */
+    private void resolveScroll(AccessibilityEvent event, long arrived, String key,
+            boolean apply) {
         AccessibilityNodeInfo src;
         try {
             src = event.getSource();
@@ -406,17 +441,15 @@ public class ShieldService extends AccessibilityService {
         Rect container = new Rect();
         src.getBoundsInScreen(container);
         if (container.isEmpty()) return;
-        String cls = null;
-        if (debug) {
-            CharSequence cn = src.getClassName();
-            cls = cn == null ? "?" : cn.toString();
-            cls = cls.substring(cls.lastIndexOf('.') + 1);
-        }
-        final String name = cls;
-        main.post(() -> onScrolled(event, container, name, arrived));
+        main.post(() -> {
+            Source known = sources.get(key);
+            if (known == null) sources.put(key, new Source(container, arrived));
+            else known.c.set(container);
+            if (apply) onScrolled(event, container, arrived);
+        });
     }
 
-    private void onScrolled(AccessibilityEvent event, Rect container, String cls, long arrived) {
+    private void onScrolled(AccessibilityEvent event, Rect container, long arrived) {
         if (!enabled) return;
         Tracker t = trackerFor(container);
 
@@ -435,7 +468,8 @@ public class ShieldService extends AccessibilityService {
         t.lastSX = sx;
         t.lastSY = sy;
         if (debug) {
-            dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + cls + " h=" + container.height()
+            dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + event.getClassName()
+                    + " h=" + container.height()
                     + " late=" + (SystemClock.uptimeMillis() - arrived) + "ms";
         }
         long now = SystemClock.uptimeMillis();
