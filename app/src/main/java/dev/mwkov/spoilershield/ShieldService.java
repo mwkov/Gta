@@ -24,6 +24,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -34,7 +37,8 @@ import java.util.regex.Pattern;
  *
  * Threads:
  *   main         owns covers and trackers, moves covers every display frame, draws.
- *   shield-scan  walks the whole screen's text to find matches (slow: many requests).
+ *   shield-scan  decides what to read next; reads just the moving list itself.
+ *   shield-read  read one window each, in parallel (a slow app can't hold up the rest).
  *   shield-poll  re-reads the position of ONE covered item per scrolling list (fast: one
  *                request), so covers follow the content. Two of these, so a slow answer
  *                never holds up the next question.
@@ -59,6 +63,9 @@ public class ShieldService extends AccessibilityService {
     private static final float ITEM_MAX_HEIGHT = 0.3f;
     private static final int MAX_SHIFTS = 4000;
     private static final long DEEP_BUDGET_MS = 2500;
+    private static final long READ_BUDGET_MS = 2000;      // one window, what's on screen
+    private static final int READERS = 3;
+    private static final long SHIFT_KEEP_MS = 20000;
     private static final int DEEP_MAX_NODES = 8000;
     // Every read is answered on the other app's main thread. While it scrolls, reading
     // back-to-back steals time from its drawing and from our position re-reads.
@@ -102,16 +109,10 @@ public class ShieldService extends AccessibilityService {
     // scan thread state (plus the volatiles)
     private final AtomicBoolean scanPending = new AtomicBoolean();
     private final AtomicLong shiftSeq = new AtomicLong();
-    private final Rect scanScreen = new Rect();
-    private final Rect tmp = new Rect();
-    private long scanStartMs;
-    private int scanNodes;
-    private int scanErrors;
-    private long scanStartSeq;
-    private boolean deepAllowed;
     private long lastDeepMs;
-    private boolean deepCut;
-    private List<Rect> scanDeepAreas;
+    // Reader threads: one window each at a time (see Read).
+    private ExecutorService readers;
+    private final Set<Integer> readingWindows = ConcurrentHashMap.newKeySet();
     private volatile boolean scrolling;
     private volatile boolean forceDeep = true;
     private volatile long lastScanStart;
@@ -142,6 +143,7 @@ public class ShieldService extends AccessibilityService {
         final Rect clip;         // the scrolling area it lives in; null = not in a list
         final long seq;          // movement counter when r was measured
         AccessibilityNodeInfo node;   // the matched item (never refreshed itself: copies are)
+        int window = -1;         // the window it was read from
         float offX, offY;        // the item's own corner relative to r's corner
 
         Cover(RectF r, Rect clip, long seq) {
@@ -154,6 +156,7 @@ public class ShieldService extends AccessibilityService {
     /** Movement applied to covers, kept so late read results can be brought up to date. */
     private static final class Shift {
         final long seq;
+        final long at = SystemClock.uptimeMillis();
         final Tracker t;
         final float dx, dy;
 
@@ -217,6 +220,11 @@ public class ShieldService extends AccessibilityService {
         scanThread = new HandlerThread("shield-scan");
         scanThread.start();
         scanHandler = new Handler(scanThread.getLooper());
+        readers = Executors.newFixedThreadPool(READERS, r -> {
+            Thread th = new Thread(r, "shield-read");
+            th.setDaemon(true);
+            return th;
+        });
         for (int i = 0; i < POLLERS; i++) {
             pollThreads[i] = new HandlerThread("shield-poll-" + i);
             pollThreads[i].start();
@@ -310,6 +318,7 @@ public class ShieldService extends AccessibilityService {
         main.removeCallbacksAndMessages(null);
         if (framesRunning) Choreographer.getInstance().removeFrameCallback(frameCallback);
         if (scanThread != null) scanThread.quitSafely();
+        if (readers != null) readers.shutdownNow();
         for (HandlerThread t : pollThreads) if (t != null) t.quitSafely();
         if (prefs != null) prefs.unregisterOnSharedPreferenceChangeListener(prefListener);
         for (View v : new View[]{overlay, fingerWatcher}) {
@@ -644,8 +653,30 @@ public class ShieldService extends AccessibilityService {
     }
 
     // =====================================================================
-    // Reading the screen (scan thread)
+    // Reading the screen
     // =====================================================================
+
+    /**
+     * One read of one window (or of just the moving list), with its own state. Windows are
+     * read in parallel: every request is answered on that app's main thread, and one window
+     * that answers slowly (a busy app, a frozen dialog) must not hold back the others.
+     */
+    private static final class Read {
+        final long start = SystemClock.uptimeMillis();
+        final long startSeq;
+        final boolean deep;       // may also read what's scrolled out of view
+        final Rect screen = new Rect();
+        final Rect tmp = new Rect();
+        final List<Cover> found = new ArrayList<>();
+        final List<Rect> deepAreas = new ArrayList<>();
+        int nodes, errors;
+        boolean deepCut, timedOut;
+
+        Read(long startSeq, boolean deep) {
+            this.startSeq = startSeq;
+            this.deep = deep;
+        }
+    }
 
     private void scheduleScan(long delay) {
         if (scanHandler == null) return;
@@ -661,87 +692,125 @@ public class ShieldService extends AccessibilityService {
         scanHandler.postDelayed(scanRunnable, Math.max(0, delay));
     }
 
+    /** Scan thread: decides what to read and hands each window to a reader thread. */
     private void backgroundScan() {
         scanPending.set(false);
-        final long startSeq = shiftSeq.get();
-        scanStartMs = SystemClock.uptimeMillis();
-        lastScanStart = scanStartMs;
-        scanNodes = 0;
-        scanErrors = 0;
-        scanStartSeq = startSeq;
+        final Pattern p = pattern;
+        if (!enabled || p == null) return;
+        long now = SystemClock.uptimeMillis();
+        lastScanStart = now;
         // While still, the app answers fast: read the whole page (also what's scrolled out
         // of view), so covers are ready before it scrolls in. Not more than every 3 s
         // unless a scroll just ended or the screen changed.
-        deepAllowed = !scrolling && (forceDeep || scanStartMs - lastDeepMs > 3000);
-        if (deepAllowed) {
-            forceDeep = false;
-            lastDeepMs = scanStartMs;
-        }
-        deepCut = false;
-        scanDeepAreas = new ArrayList<>();
-        final List<Cover> found = new ArrayList<>();
-        Pattern p = pattern;
-        // While scrolling, read only the moving list most of the time; the whole screen
-        // every SCAN_GAP_MOVING_MS so nothing elsewhere is missed.
+        boolean deep = !scrolling && (forceDeep || now - lastDeepMs > 3000);
+        // While scrolling, read only the moving list most of the time; every window every
+        // SCAN_GAP_MOVING_MS so nothing elsewhere is missed.
         AccessibilityNodeInfo list = pendingList.getAndSet(null);
-        Rect listArea = null;
-        if (list != null && scrolling && !deepAllowed
-                && scanStartMs - lastFullScanStart < SCAN_GAP_MOVING_MS && enabled && p != null) {
-            try {
-                if (list.refresh()) {
-                    listArea = new Rect();
-                    list.getBoundsInScreen(listArea);
-                    if (listArea.isEmpty()) listArea = null;
-                }
-            } catch (RuntimeException e) {
-                listArea = null;
-            }
+        if (list != null && scrolling && !deep && now - lastFullScanStart < SCAN_GAP_MOVING_MS
+                && readList(list, p)) {
+            return;
         }
-        if (listArea != null) {
-            readScreenBounds(scanScreen);
-            CharSequence pk = list.getPackageName();
-            if (pk == null || !(pk.toString().equals(getPackageName())
-                    || ignored.contains(pk.toString()))) {
-                walk(list, p, found, 0, null);
-            }
-        } else if (enabled && p != null) {
-            lastFullScanStart = scanStartMs;
-            readScreenBounds(scanScreen);
-            List<AccessibilityWindowInfo> windows;
+        if (deep) {
+            forceDeep = false;
+            lastDeepMs = now;
+        }
+        lastFullScanStart = now;
+        final long seq = shiftSeq.get();
+        List<AccessibilityWindowInfo> windows;
+        try {
+            windows = getWindows();
+        } catch (RuntimeException e) {
+            windows = null;
+        }
+        if (windows == null || windows.isEmpty()) {
+            AccessibilityNodeInfo root;
             try {
-                windows = getWindows();
+                root = getRootInActiveWindow();
             } catch (RuntimeException e) {
-                windows = null;
+                root = null;
             }
-            if (windows != null && !windows.isEmpty()) {
-                for (AccessibilityWindowInfo w : windows) {
-                    int type = w.getType();
-                    if (type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
-                            || type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) {
-                        continue;
-                    }
-                    scanRoot(rootOf(w), p, found);
-                }
-            } else {
+            if (root != null) {
+                Read rd = new Read(seq, deep);
+                readScreenBounds(rd.screen);
+                scanRoot(rd, root, p);
+                Rect wb = new Rect(rd.screen);
+                int id = root.getWindowId();
+                traceRead(rd, "win active");
+                main.post(() -> applyRead(rd, id, wb, null));
+            }
+            return;
+        }
+        final Set<Integer> present = new HashSet<>();
+        for (AccessibilityWindowInfo w : windows) {
+            int type = w.getType();
+            if (type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+                    || type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) {
+                continue;
+            }
+            present.add(w.getId());
+            readWindow(w, seq, deep, p);
+        }
+        main.post(() -> dropGoneWindows(present));
+    }
+
+    private void readWindow(AccessibilityWindowInfo w, long seq, boolean deep, Pattern p) {
+        final int id = w.getId();
+        if (!readingWindows.add(id)) return;   // still being read from before: its answer comes
+        final Rect wb = new Rect();
+        w.getBoundsInScreen(wb);
+        final String label = trace ? "win " + w.getType() + " " + w.getTitle() : null;
+        try {
+            readers.execute(() -> {
+                Read rd = new Read(seq, deep);
                 try {
-                    scanRoot(getRootInActiveWindow(), p, found);
-                } catch (RuntimeException ignored) {
+                    readScreenBounds(rd.screen);
+                    AccessibilityNodeInfo root = rootOf(w);
+                    if (root != null) {
+                        scanRoot(rd, root, p);
+                    } else if (SystemClock.uptimeMillis() - rd.start > 1000) {
+                        rd.errors++;   // it didn't answer in time: we know nothing about it
+                    }
+                } catch (RuntimeException e) {
+                    rd.errors++;
+                } finally {
+                    readingWindows.remove(id);
                 }
-            }
+                traceRead(rd, label);
+                main.post(() -> applyRead(rd, id, wb, null));
+            });
+        } catch (RuntimeException e) {   // shutting down
+            readingWindows.remove(id);
         }
-        final long took = SystemClock.uptimeMillis() - scanStartMs;
-        final int nodes = scanNodes;
-        final int errors = scanErrors;
-        final boolean deepDone = listArea == null && deepAllowed && !deepCut && errors == 0;
-        final List<Rect> areas = scanDeepAreas;
-        final Rect partial = listArea;
-        if (trace) android.util.Log.i("ShieldTrace", "S " + SystemClock.uptimeMillis() + " " + took
-                + " " + nodes + " " + found.size() + " " + errors + " " + (listArea != null ? "list" : "full"));
-        main.post(() -> {
-            dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits, "
-                    + errors + " err, " + (partial != null ? "list" : deepDone ? "FULL x" + areas.size() : "visible");
-            applyScan(found, startSeq, errors, deepDone, areas, partial);
-        });
+    }
+
+    /** Just the moving list (scan thread). False if it can't be read: read everything then. */
+    private boolean readList(AccessibilityNodeInfo list, Pattern p) {
+        Read rd = new Read(shiftSeq.get(), false);
+        Rect area = new Rect();
+        try {
+            if (!list.refresh()) return false;
+            list.getBoundsInScreen(area);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        if (area.isEmpty()) return false;
+        readScreenBounds(rd.screen);
+        CharSequence pk = list.getPackageName();
+        if (pk == null || !(pk.toString().equals(getPackageName())
+                || ignored.contains(pk.toString()))) {
+            walk(rd, list, p, 0, null);
+        }
+        traceRead(rd, "list");
+        main.post(() -> applyRead(rd, list.getWindowId(), null, area));
+        return true;
+    }
+
+    private void traceRead(Read rd, String label) {
+        if (!trace) return;
+        long now = SystemClock.uptimeMillis();
+        android.util.Log.i("ShieldTrace", "S " + now + " " + (now - rd.start) + " " + rd.nodes
+                + " " + rd.found.size() + " " + rd.errors + " "
+                + (label == null ? "win" : label.replace('\n', ' ')));
     }
 
     private static AccessibilityNodeInfo rootOf(AccessibilityWindowInfo w) {
@@ -756,7 +825,7 @@ public class ShieldService extends AccessibilityService {
         }
     }
 
-    private void scanRoot(AccessibilityNodeInfo root, Pattern p, List<Cover> out) {
+    private void scanRoot(Read rd, AccessibilityNodeInfo root, Pattern p) {
         if (root == null) return;
         CharSequence pkg = root.getPackageName();
         if (pkg != null) {
@@ -764,42 +833,46 @@ public class ShieldService extends AccessibilityService {
             // Never cover our own settings screen, so the keyword list stays editable.
             if (name.equals(getPackageName()) || ignored.contains(name)) return;
         }
-        walk(root, p, out, 0, null);
+        walk(rd, root, p, 0, null);
     }
 
     /** @param container bounds of the nearest scrolling ancestor, or null */
-    private void walk(AccessibilityNodeInfo node, Pattern p, List<Cover> out, int depth,
-            Rect container) {
-        if (node == null || depth > MAX_DEPTH) return;
-        scanNodes++;
+    private void walk(Read rd, AccessibilityNodeInfo node, Pattern p, int depth, Rect container) {
+        if (node == null || depth > MAX_DEPTH || rd.timedOut) return;
+        rd.nodes++;
+        if (SystemClock.uptimeMillis() - rd.start > READ_BUDGET_MS) {
+            rd.timedOut = true;   // app answers too slowly: hand over what we have, try again
+            rd.errors++;
+            return;
+        }
         try {
             boolean visible = node.isVisibleToUser();
             if (!visible) {
                 if (container == null) return;
-                if (!deepAllowed || scrolling || scanNodes > DEEP_MAX_NODES
-                        || SystemClock.uptimeMillis() - scanStartMs > DEEP_BUDGET_MS) {
-                    deepCut = true;
+                if (!rd.deep || scrolling || rd.nodes > DEEP_MAX_NODES
+                        || SystemClock.uptimeMillis() - rd.start > DEEP_BUDGET_MS) {
+                    rd.deepCut = true;
                     return;
                 }
-                node.getBoundsInScreen(tmp);
-                if (tmp.isEmpty()) return;
-                if (Rect.intersects(tmp, container)) return;          // hidden, not scrolled off
-                if (tmp.right <= container.left || tmp.left >= container.right) return;
+                node.getBoundsInScreen(rd.tmp);
+                if (rd.tmp.isEmpty()) return;
+                if (Rect.intersects(rd.tmp, container)) return;      // hidden, not scrolled off
+                if (rd.tmp.right <= container.left || rd.tmp.left >= container.right) return;
                 boolean known = false;
-                for (Rect a : scanDeepAreas) {
+                for (Rect a : rd.deepAreas) {
                     if (a.equals(container)) {
                         known = true;
                         break;
                     }
                 }
-                if (!known) scanDeepAreas.add(new Rect(container));
+                if (!known) rd.deepAreas.add(new Rect(container));
             }
 
             if (!node.isEditable() && (matches(p, node.getText())
                     || matches(p, node.getContentDescription())
                     || (Build.VERSION.SDK_INT >= 30 && matches(p, node.getStateDescription())))) {
-                Cover c = coverFor(tightest(node, p, 0), container);
-                if (c != null) out.add(c);
+                Cover c = coverFor(rd, tightest(node, p, 0), container);
+                if (c != null) rd.found.add(c);
                 return; // everything inside is covered already
             }
 
@@ -814,10 +887,10 @@ public class ShieldService extends AccessibilityService {
                 AccessibilityNodeInfo child = Build.VERSION.SDK_INT >= 33
                         ? node.getChild(i, AccessibilityNodeInfo.FLAG_PREFETCH_DESCENDANTS_DEPTH_FIRST)
                         : node.getChild(i);
-                walk(child, p, out, depth + 1, childContainer);
+                walk(rd, child, p, depth + 1, childContainer);
             }
         } catch (RuntimeException ignored) {
-            scanErrors++;   // node went stale mid-read: this read is incomplete
+            rd.errors++;   // node went stale mid-read: this read is incomplete
         }
     }
 
@@ -854,19 +927,23 @@ public class ShieldService extends AccessibilityService {
      * The matching text's bounds. With "cover whole item" on and the text in a list, grow to
      * the item around it (text plus its picture). Text outside lists is covered alone.
      */
-    private Cover coverFor(AccessibilityNodeInfo node, Rect container) {
-        long seq = scanStartSeq;
+    private Cover coverFor(Read rd, AccessibilityNodeInfo node, Rect container) {
+        long seq = rd.startSeq;
         Rect r = new Rect();
         node.getBoundsInScreen(r);
         if (r.isEmpty()) return null;
+        int window = node.getWindowId();
         if (container == null) {
-            if (!scanScreen.isEmpty() && !r.intersect(scanScreen)) return null;
-            return new Cover(new RectF(r), null, seq);
+            if (!rd.screen.isEmpty() && !r.intersect(rd.screen)) return null;
+            Cover c = new Cover(new RectF(r), null, seq);
+            c.window = window;
+            return c;
         }
         final int oldLeft = r.left, oldTop = r.top;
         final long textArea = Math.max(1L, (long) r.width() * r.height());
-        if (coverCard && !scanScreen.isEmpty()) {
-            int maxH = (int) (scanScreen.height() * ITEM_MAX_HEIGHT);
+        Rect tmp = rd.tmp;
+        if (coverCard && !rd.screen.isEmpty()) {
+            int maxH = (int) (rd.screen.height() * ITEM_MAX_HEIGHT);
             AccessibilityNodeInfo cur = node;
             for (int i = 0; i < MAX_CLIMB; i++) {
                 AccessibilityNodeInfo parent = cur.getParent();
@@ -895,11 +972,12 @@ public class ShieldService extends AccessibilityService {
                     seq = now;
                 }
             } else {
-                scanErrors++;
+                rd.errors++;
             }
         }
         Cover c = new Cover(new RectF(r), new Rect(container), seq);
         c.node = node;
+        c.window = window;
         c.offX = nodeLeft - r.left;
         c.offY = nodeTop - r.top;
         return c;
@@ -920,19 +998,45 @@ public class ShieldService extends AccessibilityService {
     // Results (main thread)
     // =====================================================================
 
-    private void applyScan(List<Cover> found, long startSeq, int errors, boolean deepDone,
-            List<Rect> areas, Rect partial) {
-        // A read that hit errors may have missed spoilers: never uncover on its word.
-        boolean incomplete = errors > 0 && incompleteStreak < 6;
-        incompleteStreak = errors > 0 ? incompleteStreak + 1 : 0;
-        List<Cover> keep = new ArrayList<>();
-        // A list-only read says nothing about covers elsewhere: they all stay.
-        List<Cover> scope = covers;
-        if (partial != null) {
-            scope = new ArrayList<>();
-            for (Cover old : covers) {
-                if (movesWith(old.clip, partial)) scope.add(old); else keep.add(old);
+    /** A window closed (a dialog, a popup): its covers go with it. */
+    private void dropGoneWindows(Set<Integer> present) {
+        boolean changed = false;
+        for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) {
+            Cover c = it.next();
+            if (c.window != -1 && !present.contains(c.window)) {
+                it.remove();
+                changed = true;
             }
+        }
+        if (changed) render();
+    }
+
+    /**
+     * One window's (or one list's) read is in. It replaces what is known about that window
+     * only; covers elsewhere stay as they are.
+     *
+     * @param partial the list that was read alone, or null for a whole window
+     */
+    private void applyRead(Read rd, int window, Rect windowArea, Rect partial) {
+        List<Cover> found = rd.found;
+        long startSeq = rd.startSeq;
+        boolean deepDone = partial == null && rd.deep && !rd.deepCut && rd.errors == 0;
+        Rect area = partial != null ? partial : windowArea;
+        if (debug) {
+            dbgScan = "scan: " + (SystemClock.uptimeMillis() - rd.start) + "ms, " + rd.nodes
+                    + " nodes, " + found.size() + " hits, " + rd.errors + " err, "
+                    + (partial != null ? "list" : deepDone ? "FULL x" + rd.deepAreas.size()
+                    : "visible");
+        }
+        // A read that hit errors may have missed spoilers: never uncover on its word.
+        boolean incomplete = rd.errors > 0 && incompleteStreak < 6;
+        incompleteStreak = rd.errors > 0 ? incompleteStreak + 1 : 0;
+        List<Cover> keep = new ArrayList<>();
+        List<Cover> scope = new ArrayList<>();
+        for (Cover old : covers) {
+            boolean in = partial != null ? movesWith(old.clip, partial)
+                    : old.window == window || (old.window == -1 && window == -1);
+            if (in) scope.add(old); else keep.add(old);
         }
         if (incomplete) {
             for (Cover old : scope) {
@@ -958,7 +1062,12 @@ public class ShieldService extends AccessibilityService {
                 if (!RectF.intersects(old.r, clipF)) keep.add(old);
             }
         }
-        if (deepDone) deepAreas = areas;
+        if (deepDone) {
+            List<Rect> next = new ArrayList<>();
+            for (Rect a : deepAreas) if (area == null || overlapShare(a, area) < 0.6f) next.add(a);
+            next.addAll(rd.deepAreas);
+            deepAreas = next;
+        }
 
         // Bring results measured during movement up to date.
         for (Shift s : shifts) {
@@ -967,18 +1076,14 @@ public class ShieldService extends AccessibilityService {
                 if (s.seq > c.seq && movesWith(c.clip, s.t.c)) c.r.offset(s.dx, s.dy);
             }
         }
-        if (partial == null) {
-            for (Iterator<Shift> it = shifts.iterator(); it.hasNext(); ) {
-                if (it.next().seq <= startSeq) it.remove();
-            }
-        }
         // Whatever moved after this read began is still unread (edge curtain).
         if (!incomplete) {
             for (Tracker t : trackers) {
-                if (partial == null || movesWith(t.c, partial)) t.unX = t.unY = 0;
+                if (area == null || movesWith(t.c, area)) t.unX = t.unY = 0;
             }
             for (Shift s : shifts) {
-                if (partial != null && !movesWith(s.t.c, partial)) continue;
+                if (s.seq <= startSeq) continue;
+                if (area != null && !movesWith(s.t.c, area)) continue;
                 s.t.unX += s.dx;
                 s.t.unY += s.dy;
             }
@@ -1003,8 +1108,9 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
-        found.addAll(keep);
-        covers = found;
+        List<Cover> next = new ArrayList<>(found);
+        next.addAll(keep);
+        covers = next;
         // Every list with covers gets a tracker, so its re-reads can start right away.
         for (Cover c : covers) {
             if (c.node != null && c.clip != null && !c.clip.isEmpty()) trackerFor(c.clip);
@@ -1013,6 +1119,10 @@ public class ShieldService extends AccessibilityService {
         if (!enabled) armed = false;
 
         long now = SystemClock.uptimeMillis();
+        // Old movement records are only needed by reads still running (none run this long).
+        for (Iterator<Shift> it = shifts.iterator(); it.hasNext(); ) {
+            if (now - it.next().at > SHIFT_KEEP_MS) it.remove(); else break;
+        }
         boolean anyActive = false;
         for (Iterator<Tracker> it = trackers.iterator(); it.hasNext(); ) {
             Tracker t = it.next();
@@ -1028,7 +1138,8 @@ public class ShieldService extends AccessibilityService {
 
         main.removeCallbacks(recheckRunnable);
         if (anyActive || incomplete) {
-            scheduleScan(incomplete ? 40 : 0);   // keep reading while it scrolls / until clean
+            // keep reading while it scrolls / until clean (gently, if the app is slow)
+            scheduleScan(incomplete ? Math.max(40, now - rd.start) : 0);
         } else if (!covers.isEmpty()) {
             main.postDelayed(recheckRunnable, RECHECK_MS);
         }

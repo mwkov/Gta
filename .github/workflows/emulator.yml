@@ -50,7 +50,10 @@ jobs:
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
           echo "$ANDROID_HOME/emulator" >> "$GITHUB_PATH"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          IMG="system-images;android-34;google_apis;x86_64"
+          # Plain AOSP image (no Google services): on a CI machine with no GPU, Play services alone
+          # starve the CPU (they ANR'd in earlier runs) and every app answers slowly.
+          IMG="system-images;android-34;default;x86_64"
+          nproc; free -g
           yes | sdkmanager --install "$IMG" emulator platform-tools > /dev/null || true
           emulator -version | head -1
           ldd "$ANDROID_HOME/emulator/qemu/linux-x86_64/qemu-system-x86_64" | grep "not found" || echo "all emulator libraries found"
@@ -61,7 +64,7 @@ jobs:
           ls -la "$ANDROID_AVD_HOME"
           emulator -list-avds
           set +x
-          nohup emulator -avd t -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
+          nohup emulator -avd t -cores 4 -memory 4096 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
             -no-snapshot -no-metrics -camera-back none -camera-front none > "$OUT/emulator.txt" 2>&1 &
           booted=0
           EMU_PID=$!
