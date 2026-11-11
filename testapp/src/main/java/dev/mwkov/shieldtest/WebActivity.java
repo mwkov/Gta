@@ -15,7 +15,7 @@ public class WebActivity extends Activity {
 
     private WebView web;
     private final int[] loc = new int[2];
-    private volatile int offX, offY;
+    private volatile int offX, offY, webH = 100000;
     private float density;
 
     @Override
@@ -45,6 +45,7 @@ public class WebActivity extends Activity {
             web.getLocationOnScreen(loc);
             offX = loc[0];
             offY = loc[1];
+            webH = web.getHeight();
         });
     }
 
@@ -55,10 +56,14 @@ public class WebActivity extends Activity {
         for (String r : cssRects.split(";")) {
             if (r.isEmpty()) continue;
             String[] p = r.split(",");
+            // Only the part inside the web view can be seen.
+            int top = Math.max(Math.round(Float.parseFloat(p[1]) * density) + offY, offY);
+            int bottom = Math.min(Math.round(Float.parseFloat(p[3]) * density) + offY, offY + webH);
+            if (bottom <= top) continue;
             sb.append(Math.round(Float.parseFloat(p[0]) * density) + offX).append(',')
-                    .append(Math.round(Float.parseFloat(p[1]) * density) + offY).append(',')
+                    .append(top).append(',')
                     .append(Math.round(Float.parseFloat(p[2]) * density) + offX).append(',')
-                    .append(Math.round(Float.parseFloat(p[3]) * density) + offY).append(';');
+                    .append(bottom).append(';');
         }
         Log.i("ShieldHarness", sb.toString());
     }

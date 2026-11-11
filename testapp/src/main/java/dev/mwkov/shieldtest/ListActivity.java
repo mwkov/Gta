@@ -62,14 +62,18 @@ public class ListActivity extends Activity {
 
     private void frame(long nanos) {
         StringBuilder sb = new StringBuilder("H ").append(SystemClock.uptimeMillis()).append(' ');
+        // Only the part inside the list can be seen (the list clips its rows).
+        list.getLocationOnScreen(loc);
+        int clipTop = loc[1], clipBottom = loc[1] + list.getHeight();
         for (int i = 0; i < list.getChildCount(); i++) {
             ViewGroup row = (ViewGroup) list.getChildAt(i);
             TextView t = (TextView) row.getChildAt(0);
             if (!"gta".equals(t.getTag())) continue;
             t.getLocationOnScreen(loc);
-            sb.append(loc[0]).append(',').append(loc[1]).append(',')
-                    .append(loc[0] + t.getWidth()).append(',').append(loc[1] + t.getHeight())
-                    .append(';');
+            int top = Math.max(loc[1], clipTop), bottom = Math.min(loc[1] + t.getHeight(), clipBottom);
+            if (bottom <= top) continue;
+            sb.append(loc[0]).append(',').append(top).append(',')
+                    .append(loc[0] + t.getWidth()).append(',').append(bottom).append(';');
         }
         Log.i("ShieldHarness", sb.toString());
         if (!isFinishing()) Choreographer.getInstance().postFrameCallback(this::frame);

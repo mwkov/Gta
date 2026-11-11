@@ -66,7 +66,7 @@ def main(path, screen=None):
     print('%-8s %-14s %7s %9s %10s %11s %10s %12s' % ('screen', 'gesture', 'frames', 'exposed%', 'worst px', 'cover err', 'err p95', 'longest ms'))
     totals = collections.defaultdict(lambda: [0, 0, 0, []])
     for (scr, name), d in sections.items():
-        if name == 'end': continue
+        if name in ('end', 'video'): continue
         C = d['C']; ci = -1; frames = exposed = worst = 0; errs = []
         run_start = None; longest = 0
         for (t, hs) in d['H']:

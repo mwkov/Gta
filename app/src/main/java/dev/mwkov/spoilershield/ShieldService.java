@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
  *
  * Threads:
  *   main         owns covers and trackers, moves covers every display frame, draws.
+ *   shield-event asks which list a scroll event came from (a request to the app).
  *   shield-scan  decides what to read next; reads just the moving list itself.
  *   shield-read  read one window each, in parallel (a slow app can't hold up the rest).
  *   shield-poll  re-reads the position of ONE covered item per scrolling list (fast: one
@@ -89,6 +90,8 @@ public class ShieldService extends AccessibilityService {
     private final Handler main = new Handler(Looper.getMainLooper());
     private HandlerThread scanThread;
     private Handler scanHandler;
+    private HandlerThread eventThread;
+    private Handler eventHandler;
     private final HandlerThread[] pollThreads = new HandlerThread[POLLERS];
     private final Handler[] pollHandlers = new Handler[POLLERS];
     private int nextPoller;
@@ -221,6 +224,9 @@ public class ShieldService extends AccessibilityService {
         scanThread = new HandlerThread("shield-scan");
         scanThread.start();
         scanHandler = new Handler(scanThread.getLooper());
+        eventThread = new HandlerThread("shield-event");
+        eventThread.start();
+        eventHandler = new Handler(eventThread.getLooper());
         readers = Executors.newFixedThreadPool(READERS, r -> {
             Thread th = new Thread(r, "shield-read");
             th.setDaemon(true);
@@ -319,6 +325,7 @@ public class ShieldService extends AccessibilityService {
         main.removeCallbacksAndMessages(null);
         if (framesRunning) Choreographer.getInstance().removeFrameCallback(frameCallback);
         if (scanThread != null) scanThread.quitSafely();
+        if (eventThread != null) eventThread.quitSafely();
         if (readers != null) readers.shutdownNow();
         for (HandlerThread t : pollThreads) if (t != null) t.quitSafely();
         if (prefs != null) prefs.unregisterOnSharedPreferenceChangeListener(prefListener);
@@ -343,7 +350,13 @@ public class ShieldService extends AccessibilityService {
         if (!enabled) return;
         int type = event.getEventType();
         if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            onScrolled(event);
+            // Which list scrolled is only known by asking the app (getSource is a request
+            // answered on its main thread). Never ask from here: a busy app would freeze our
+            // main thread, and with it every cover's movement. Ask on the event thread.
+            final long arrived = SystemClock.uptimeMillis();
+            final AccessibilityEvent copy = Build.VERSION.SDK_INT >= 30
+                    ? new AccessibilityEvent(event) : AccessibilityEvent.obtain(event);
+            if (eventHandler != null) eventHandler.post(() -> resolveScroll(copy, arrived));
         } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // New screen: tracking from the old one no longer applies.
             trackers.clear();
@@ -375,7 +388,8 @@ public class ShieldService extends AccessibilityService {
         if (any) startFrames();   // the frame loop re-reads hot lists every frame
     }
 
-    private void onScrolled(AccessibilityEvent event) {
+    /** Event thread: find out which list scrolled, then continue on main. */
+    private void resolveScroll(AccessibilityEvent event, long arrived) {
         AccessibilityNodeInfo src;
         try {
             src = event.getSource();
@@ -386,8 +400,20 @@ public class ShieldService extends AccessibilityService {
         Rect container = new Rect();
         src.getBoundsInScreen(container);
         if (container.isEmpty()) return;
-        Tracker t = trackerFor(container);
         pendingList.set(src);
+        String cls = null;
+        if (debug) {
+            CharSequence cn = src.getClassName();
+            cls = cn == null ? "?" : cn.toString();
+            cls = cls.substring(cls.lastIndexOf('.') + 1);
+        }
+        final String name = cls;
+        main.post(() -> onScrolled(event, container, name, arrived));
+    }
+
+    private void onScrolled(AccessibilityEvent event, Rect container, String cls, long arrived) {
+        if (!enabled) return;
+        Tracker t = trackerFor(container);
 
         int dx = 0, dy = 0;
         if (Build.VERSION.SDK_INT >= 28) {
@@ -404,14 +430,13 @@ public class ShieldService extends AccessibilityService {
         t.lastSX = sx;
         t.lastSY = sy;
         if (debug) {
-            CharSequence cn = src.getClassName();
-            String cls = cn == null ? "?" : cn.toString();
-            cls = cls.substring(cls.lastIndexOf('.') + 1);
-            dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + cls + " h=" + container.height();
+            dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + cls + " h=" + container.height()
+                    + " late=" + (SystemClock.uptimeMillis() - arrived) + "ms";
         }
         if (dx == 0 && dy == 0) return;
 
         long now = SystemClock.uptimeMillis();
+        if (trace) android.util.Log.i("ShieldTrace", "E " + now + " " + (now - arrived) + " " + dy);
         long at = event.getEventTime();   // when the app sent it: no delivery jitter
         if (at <= 0 || at > now) at = now;
         if (Math.abs(dy) > container.height() * 3 || Math.abs(dx) > container.width() * 3) {
@@ -430,7 +455,7 @@ public class ShieldService extends AccessibilityService {
             t.ty.addDelta(-dy, at, window);
         }
         t.lastEventSent = at;
-        t.lastEventArr = now;
+        t.lastEventArr = Math.max(t.lastEventArr, arrived);
         t.lastSeen = now;
         t.hotUntil = Math.max(t.hotUntil, now + HOT_AFTER_MOVE_MS);
         t.moving = true;
