@@ -71,8 +71,7 @@ public class ShieldService extends AccessibilityService {
     private static final int DEEP_MAX_NODES = 8000;
     // Every read is answered on the other app's main thread. While it scrolls, reading
     // back-to-back steals time from its drawing and from our position re-reads.
-    private static final long SCAN_GAP_MOVING_MS = 600;   // whole screen, while scrolling
-    private static final long LIST_GAP_MOVING_MS = 40;    // just the moving list
+    private static final long SCAN_GAP_MOVING_MS = 150;
 
     private static final long REGEX_BUDGET_MS = 20;
 
@@ -119,13 +118,17 @@ public class ShieldService extends AccessibilityService {
     // Reader threads: one window each at a time (see Read).
     private ExecutorService readers;
     private final Set<Integer> readingWindows = ConcurrentHashMap.newKeySet();
+    // Where the text sits inside its item (see coverFor), most recent 256.
+    private final java.util.LinkedHashMap<String, int[]> textBoxes =
+            new java.util.LinkedHashMap<String, int[]>(64, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(java.util.Map.Entry<String, int[]> e) {
+                    return size() > 256;
+                }
+            };
     private volatile boolean scrolling;
     private volatile boolean forceDeep = true;
     private volatile long lastScanStart;
-    private volatile long lastFullScanStart;
-    // The list that is scrolling: while it moves, only it is re-read (a fraction of the work).
-    private final java.util.concurrent.atomic.AtomicReference<AccessibilityNodeInfo> pendingList =
-            new java.util.concurrent.atomic.AtomicReference<>();
     private volatile int regexTimeouts;
 
     // main thread state
@@ -403,7 +406,6 @@ public class ShieldService extends AccessibilityService {
         Rect container = new Rect();
         src.getBoundsInScreen(container);
         if (container.isEmpty()) return;
-        pendingList.set(src);
         String cls = null;
         if (debug) {
             CharSequence cn = src.getClassName();
@@ -744,12 +746,10 @@ public class ShieldService extends AccessibilityService {
         if (scanHandler == null) return;
         if (!scanPending.compareAndSet(false, true)) return;
         if (scrolling) {
-            long now = SystemClock.uptimeMillis();
-            boolean listNext = pendingList.get() != null
-                    && now - lastFullScanStart < SCAN_GAP_MOVING_MS;
-            long gap = listNext ? LIST_GAP_MOVING_MS : SCAN_GAP_MOVING_MS;
-            long since = now - (listNext ? lastScanStart : lastFullScanStart);
-            delay = Math.max(delay, gap - since);
+            // Each read is answered on the app's main thread, between its frames: reading
+            // back-to-back while it scrolls makes it drop frames (measured on the emulator).
+            long since = SystemClock.uptimeMillis() - lastScanStart;
+            delay = Math.max(delay, SCAN_GAP_MOVING_MS - since);
         }
         scanHandler.postDelayed(scanRunnable, Math.max(0, delay));
     }
@@ -765,18 +765,10 @@ public class ShieldService extends AccessibilityService {
         // of view), so covers are ready before it scrolls in. Not more than every 3 s
         // unless a scroll just ended or the screen changed.
         boolean deep = !scrolling && (forceDeep || now - lastDeepMs > 3000);
-        // While scrolling, read only the moving list most of the time; every window every
-        // SCAN_GAP_MOVING_MS so nothing elsewhere is missed.
-        AccessibilityNodeInfo list = pendingList.getAndSet(null);
-        if (list != null && scrolling && !deep && now - lastFullScanStart < SCAN_GAP_MOVING_MS
-                && readList(list, p)) {
-            return;
-        }
         if (deep) {
             forceDeep = false;
             lastDeepMs = now;
         }
-        lastFullScanStart = now;
         final long seq = shiftSeq.get();
         List<AccessibilityWindowInfo> windows;
         try {
@@ -843,28 +835,6 @@ public class ShieldService extends AccessibilityService {
         } catch (RuntimeException e) {   // shutting down
             readingWindows.remove(id);
         }
-    }
-
-    /** Just the moving list (scan thread). False if it can't be read: read everything then. */
-    private boolean readList(AccessibilityNodeInfo list, Pattern p) {
-        Read rd = new Read(shiftSeq.get(), false);
-        Rect area = new Rect();
-        try {
-            if (!list.refresh()) return false;
-            list.getBoundsInScreen(area);
-        } catch (RuntimeException e) {
-            return false;
-        }
-        if (area.isEmpty()) return false;
-        readScreenBounds(rd.screen);
-        CharSequence pk = list.getPackageName();
-        if (pk == null || !(pk.toString().equals(getPackageName())
-                || ignored.contains(pk.toString()))) {
-            walk(rd, list, p, 0, null);
-        }
-        traceRead(rd, "list");
-        main.post(() -> applyRead(rd, list.getWindowId(), null, area));
-        return true;
     }
 
     private void traceRead(Read rd, String label) {
@@ -1023,14 +993,30 @@ public class ShieldService extends AccessibilityService {
         boolean measuredNow = false;
         int nodeLeft = r.left, nodeTop = r.top;
         if (onScreen && (!coverCard || container == null)) {
-            long s0 = shiftSeq.get();
-            Rect nb = new Rect(), tb = new Rect();
-            if (textBounds(rd, node, tb, nb) && tb.intersect(nb)) {
-                r.set(tb);
-                nodeLeft = nb.left;
-                nodeTop = nb.top;
-                seq = s0;
-                measuredNow = true;
+            // Where the text sits inside its box doesn't change while it scrolls: ask once
+            // (one request), then reuse. While scrolling, never ask (the app is busy).
+            CharSequence txt = node.getText();
+            String key = node.hashCode() + "|" + window + "|" + txt;
+            int[] rel;
+            synchronized (textBoxes) {
+                rel = textBoxes.get(key);
+            }
+            if (rel != null && rel[4] == r.width() && rel[5] == r.height()) {
+                r.set(r.left + rel[0], r.top + rel[1], r.left + rel[2], r.top + rel[3]);
+            } else if (!scrolling) {
+                long s0 = shiftSeq.get();
+                Rect nb = new Rect(), tb = new Rect();
+                if (textBounds(rd, node, tb, nb) && tb.intersect(nb)) {
+                    synchronized (textBoxes) {
+                        textBoxes.put(key, new int[]{tb.left - nb.left, tb.top - nb.top,
+                                tb.right - nb.left, tb.bottom - nb.top, nb.width(), nb.height()});
+                    }
+                    r.set(tb);
+                    nodeLeft = nb.left;
+                    nodeTop = nb.top;
+                    seq = s0;
+                    measuredNow = true;
+                }
             }
         }
         if (container == null) {
