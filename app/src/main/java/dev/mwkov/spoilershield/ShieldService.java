@@ -71,6 +71,9 @@ public class ShieldService extends AccessibilityService {
     private final Rect tmp = new Rect();          // scan thread only
     private long scanStartMs;                     // scan thread only
     private int scanNodes;                        // scan thread only
+    private int scanErrors;                       // scan thread only: parts we failed to read
+    private long scanStartSeq;                    // scan thread only
+    private int incompleteStreak;                 // main thread
     private static final long OFFSCREEN_BUDGET_MS = 80;
 
     // Debug numbers (main thread)
@@ -363,6 +366,8 @@ public class ShieldService extends AccessibilityService {
         final long startSeq = shiftSeq.get();
         scanStartMs = SystemClock.uptimeMillis();
         scanNodes = 0;
+        scanErrors = 0;
+        scanStartSeq = startSeq;
         final List<Cover> found = new ArrayList<>();
         Pattern p = pattern;
         if (enabled && p != null) {
@@ -391,9 +396,11 @@ public class ShieldService extends AccessibilityService {
         }
         final long took = SystemClock.uptimeMillis() - scanStartMs;
         final int nodes = scanNodes;
+        final int errors = scanErrors;
         main.post(() -> {
-            dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits";
-            applyScan(found, startSeq);
+            dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits, "
+                    + errors + " err";
+            applyScan(found, startSeq, errors);
         });
     }
 
@@ -468,7 +475,8 @@ public class ShieldService extends AccessibilityService {
                 walk(child, p, out, depth + 1, childContainer);
             }
         } catch (RuntimeException ignored) {
-            // Node went stale mid-read (screen changed); the next read will catch up.
+            // Node went stale mid-read (screen changed): this read is incomplete.
+            scanErrors++;
         }
     }
 
@@ -484,8 +492,13 @@ public class ShieldService extends AccessibilityService {
     private Cover coverFor(AccessibilityNodeInfo node, Rect container) {
         // Positions we walked past may be a batch old. Re-read this one now and remember the
         // movement counter, so later only movement AFTER this instant is added on top.
-        final long seq = shiftSeq.get();
-        if (container != null && !node.refresh()) return null;
+        long seq = shiftSeq.get();
+        if (container != null && !node.refresh()) {
+            // Couldn't re-read: keep the position we have (as of the start of this read)
+            // rather than dropping a known spoiler.
+            scanErrors++;
+            seq = scanStartSeq;
+        }
         Rect r = new Rect();
         node.getBoundsInScreen(r);
         if (r.isEmpty()) return null;
@@ -525,7 +538,24 @@ public class ShieldService extends AccessibilityService {
 
     // ------------------------------------------------------------------ results (main thread)
 
-    private void applyScan(List<Cover> found, long startSeq) {
+    private void applyScan(List<Cover> found, long startSeq, int errors) {
+        // A read that hit errors may have missed spoilers. Don't uncover anything on its
+        // word: keep existing covers it didn't re-find, keep the curtain, and read again.
+        boolean incomplete = errors > 0 && incompleteStreak < 6;
+        incompleteStreak = errors > 0 ? incompleteStreak + 1 : 0;
+        List<Cover> keep = new ArrayList<>();
+        if (incomplete) {
+            for (Cover old : covers) {
+                boolean refound = false;
+                for (Cover c : found) {
+                    if (RectF.intersects(old.r, c.r)) {
+                        refound = true;
+                        break;
+                    }
+                }
+                if (!refound) keep.add(old);
+            }
+        }
         // Content may have moved while we were reading: bring the results up to date.
         for (Shift s : shifts) {
             if (s.seq <= startSeq) continue;
@@ -537,12 +567,15 @@ public class ShieldService extends AccessibilityService {
             if (it.next().seq <= startSeq) it.remove();
         }
         // Whatever moved after this read began is still unverified; everything before is read.
-        for (Tracker t : trackers) t.unX = t.unY = 0;
-        for (Shift s : shifts) {
-            s.t.unX += s.dx;
-            s.t.unY += s.dy;
+        if (!incomplete) {
+            for (Tracker t : trackers) t.unX = t.unY = 0;
+            for (Shift s : shifts) {
+                s.t.unX += s.dx;
+                s.t.unY += s.dy;
+            }
         }
 
+        found.addAll(keep);   // already at current positions
         covers = found;
         if (!found.isEmpty()) armed = true;
         if (!enabled) armed = false;
@@ -561,8 +594,8 @@ public class ShieldService extends AccessibilityService {
         render();
 
         main.removeCallbacks(recheckRunnable);
-        if (anyActive) {
-            scheduleScan(0);                       // keep reading for as long as it scrolls
+        if (anyActive || incomplete) {
+            scheduleScan(incomplete ? 40 : 0);     // keep reading while scrolling / until clean
         } else if (!covers.isEmpty()) {
             main.postDelayed(recheckRunnable, RECHECK_MS);
         }
