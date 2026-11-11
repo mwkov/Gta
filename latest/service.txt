@@ -3,6 +3,6 @@
      Binding services:{}
      Crashed services:{}
 --
-[dev.mwkov.spoilershield][com.android.inputmethod.latin][com.android.systemui][com.android.launcher3][com.android.launcher3][com.android.launcher3]}]
+[com.android.inputmethod.latin][dev.mwkov.spoilershield][com.android.launcher3][com.android.launcher3][com.android.systemui]}]
 Global Info [ Top focused display Id = 0
-     Active Window Id = 5
+     Active Window Id = 6
