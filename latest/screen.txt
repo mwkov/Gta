@@ -1,2 +1,2 @@
-Physical size: 720x1600
-Physical density: 280
+Physical size: 540x1200
+Physical density: 210

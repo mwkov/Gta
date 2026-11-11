@@ -8,7 +8,6 @@ Success
 Performing Streamed Install
 Success
 + adb root
-restarting adbd as root
 + sleep 4
 + timeout 60 adb wait-for-device
 + adb shell settings put global hide_error_dialogs 1
@@ -22,14 +21,14 @@ Starting: Intent { cmp=dev.mwkov.spoilershield/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.spoilershield/.MainActivity
-TotalTime: 979
-WaitTime: 1042
+TotalTime: 1115
+WaitTime: 1144
 Complete
 + sleep 3
 + adb shell am force-stop dev.mwkov.spoilershield
 + cat
 + adb push /home/runner/work/_temp/results/shield.xml /data/local/tmp/shield.xml
-/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 3.6 MB/s (298 bytes in 0.000s)
+/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 5.5 MB/s (299 bytes in 0.000s)
 + adb shell 'mkdir -p /data/data/dev.mwkov.spoilershield/shared_prefs && cp /data/local/tmp/shield.xml /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && U=$(stat -c %u /data/data/dev.mwkov.spoilershield) && chown -R $U:$U /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 771 /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 660 /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && restorecon -R /data/data/dev.mwkov.spoilershield/shared_prefs'
 SELinux: Loaded file context from:
 		/system/etc/selinux/plat_file_contexts
@@ -44,28 +43,28 @@ SELinux: Loaded file context from:
 + adb shell wm size
 + adb shell wm density
 + adb logcat -c
-+ LOGPID=4063
-+ adb logcat -v threadtime -b main,system,crash '*:W' ActivityManager:I AccessibilityManagerService:V ShieldTrace:S ShieldHarness:S H:S
-+ FULLPID=4064
-+ health start
++ LOGPID=3371
 + adb logcat -v raw -s ShieldTrace:I ShieldHarness:I
++ FULLPID=3372
++ adb logcat -v threadtime -b main,system,crash '*:W' ActivityManager:I AccessibilityManagerService:V ShieldTrace:S ShieldHarness:S H:S
++ health start
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2641
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== start pid=[2641] 100.19 269.67'
-+ '[' -n 2641 ']'
-+ timeout 20 adb shell debuggerd -j 2641
++ echo '== start pid=[2650] 106.59 269.44'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-++ tail -1
 ++ adb shell wm size
+++ tail -1
 ++ sed 's/.*: //'
 ++ tr -d '\r'
-+ SIZE=720x1600
-+ SW=720
-+ SH=1600
++ SIZE=540x1200
++ SW=540
++ SH=1200
 + run list ListActivity
 + mark 'screen list'
 + adb shell log -p i -t ShieldHarness 'M screen list'
@@ -78,24 +77,24 @@ Starting: Intent { cmp=dev.mwkov.shieldtest/.ListActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.ListActivity
-TotalTime: 1430
-WaitTime: 1455
+TotalTime: 1223
+WaitTime: 1229
 Complete
 + sleep 6
 + clear_dialogs
 + adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS
-+ grep -q 'Application Not Responding\|isn'\''t responding'
 + adb shell dumpsys window
++ grep -q 'Application Not Responding\|isn'\''t responding'
 + adb shell dumpsys window
 + grep -m3 'mCurrentFocus\|isn'\''t responding'
 + health 'list shown'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2641
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== list shown pid=[2641] 107.95 289.52'
-+ '[' -n 2641 ']'
-+ timeout 20 adb shell debuggerd -j 2641
++ echo '== list shown pid=[2650] 114.21 291.01'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
@@ -104,206 +103,206 @@ Complete
 + adb shell log -p i -t ShieldHarness 'M slow_drag'
 + swipe 1800 900 1500
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
+++ echo 900
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1200 360 600 1500
+++ echo 450
++ adb shell input swipe 270 900 270 450 1500
 + sleep 2.5
 + mark medium
 + adb shell log -p i -t ShieldHarness 'M medium'
 + swipe 1800 700 400
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
+++ echo 900
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 700
-++ echo 466
-+ adb shell input swipe 360 1200 360 466 400
+++ echo 350
++ adb shell input swipe 270 900 270 350 400
 + sleep 3
 + mark fling_down
 + adb shell log -p i -t ShieldHarness 'M fling_down'
 + swipe 2000 500 80
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 2000
-++ echo 1333
+++ echo 1000
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 500
-++ echo 333
-+ adb shell input swipe 360 1333 360 333 80
+++ echo 250
++ adb shell input swipe 270 1000 270 250 80
 + sleep 4
 + mark fling_up
 + adb shell log -p i -t ShieldHarness 'M fling_up'
 + swipe 500 2000 80
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 500
-++ echo 333
+++ echo 250
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 2000
-++ echo 1333
-+ adb shell input swipe 360 333 360 1333 80
+++ echo 1000
++ adb shell input swipe 270 250 270 1000 80
 + sleep 4
 + mark drag_hold
 + adb shell log -p i -t ShieldHarness 'M drag_hold'
 + touch_ DOWN 1800
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
-+ adb shell input motionevent DOWN 360 1200
+++ echo 900
++ adb shell input motionevent DOWN 270 900
 + sleep 0.15
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1750
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1750
-++ echo 1166
-+ adb shell input motionevent MOVE 360 1166
+++ echo 875
++ adb shell input motionevent MOVE 270 875
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1700
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1700
-++ echo 1133
-+ adb shell input motionevent MOVE 360 1133
+++ echo 850
++ adb shell input motionevent MOVE 270 850
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1650
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1650
-++ echo 1100
-+ adb shell input motionevent MOVE 360 1100
+++ echo 825
++ adb shell input motionevent MOVE 270 825
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1600
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1600
-++ echo 1066
-+ adb shell input motionevent MOVE 360 1066
+++ echo 800
++ adb shell input motionevent MOVE 270 800
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1550
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1550
-++ echo 1033
-+ adb shell input motionevent MOVE 360 1033
+++ echo 775
++ adb shell input motionevent MOVE 270 775
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1500
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1500
-++ echo 1000
-+ adb shell input motionevent MOVE 360 1000
+++ echo 750
++ adb shell input motionevent MOVE 270 750
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1450
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1450
-++ echo 966
-+ adb shell input motionevent MOVE 360 966
+++ echo 725
++ adb shell input motionevent MOVE 270 725
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1400
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1400
-++ echo 933
-+ adb shell input motionevent MOVE 360 933
+++ echo 700
++ adb shell input motionevent MOVE 270 700
 + sleep 0.8
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1350
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1350
-++ echo 900
-+ adb shell input motionevent MOVE 360 900
+++ echo 675
++ adb shell input motionevent MOVE 270 675
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1300
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1300
-++ echo 866
-+ adb shell input motionevent MOVE 360 866
+++ echo 650
++ adb shell input motionevent MOVE 270 650
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1250
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1250
-++ echo 833
-+ adb shell input motionevent MOVE 360 833
+++ echo 625
++ adb shell input motionevent MOVE 270 625
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1200
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1200
-++ echo 800
-+ adb shell input motionevent MOVE 360 800
+++ echo 600
++ adb shell input motionevent MOVE 270 600
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1150
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1150
-++ echo 766
-+ adb shell input motionevent MOVE 360 766
+++ echo 575
++ adb shell input motionevent MOVE 270 575
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1100
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1100
-++ echo 733
-+ adb shell input motionevent MOVE 360 733
+++ echo 550
++ adb shell input motionevent MOVE 270 550
 + touch_ UP 1100
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1100
-++ echo 733
-+ adb shell input motionevent UP 360 733
+++ echo 550
++ adb shell input motionevent UP 270 550
 + sleep 3
 + mark repeat_flings
 + adb shell log -p i -t ShieldHarness 'M repeat_flings'
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + sleep 3
 + mark end
@@ -311,81 +310,81 @@ Complete
 + health 'list measured'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2641
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== list measured pid=[2641] 137.26 353.19'
-+ '[' -n 2641 ']'
-+ timeout 20 adb shell debuggerd -j 2641
++ echo '== list measured pid=[2650] 143.66 363.81'
++ '[' -n 2650 ']'
 + grep -A14 '^"main"\|^"shield-'
++ timeout 20 adb shell debuggerd -j 2650
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-+ REC=4301
++ REC=3581
 + sleep 1
 + adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/list.mp4
 + mark video
 + adb shell log -p i -t ShieldHarness 'M video'
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
+++ echo 900
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1200 360 600 1500
+++ echo 450
++ adb shell input swipe 270 900 270 450 1500
 + sleep 2.5
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 2000
-++ echo 1333
+++ echo 1000
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 500
-++ echo 333
-+ adb shell input swipe 360 1333 360 333 80
+++ echo 250
++ adb shell input swipe 270 1000 270 250 80
 + sleep 4
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + sleep 2
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 4301
++ kill 3581
 + timeout 60 adb pull /sdcard/list.mp4 /home/runner/work/_temp/results/list.mp4
-/sdcard/list.mp4: 1 file pulled, 0 skipped. 136.2 MB/s (573254 bytes in 0.004s)
+/sdcard/list.mp4: 1 file pulled, 0 skipped. 14.2 MB/s (711836 bytes in 0.048s)
 + mark end
 + adb shell log -p i -t ShieldHarness 'M end'
 + adb shell am force-stop dev.mwkov.shieldtest
@@ -401,8 +400,8 @@ Starting: Intent { cmp=dev.mwkov.shieldtest/.WebActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.WebActivity
-TotalTime: 1709
-WaitTime: 1724
+TotalTime: 1581
+WaitTime: 1613
 Complete
 + sleep 6
 + clear_dialogs
@@ -414,11 +413,11 @@ Complete
 + health 'web shown'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2641
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== web shown pid=[2641] 164.86 389.31'
-+ '[' -n 2641 ']'
-+ timeout 20 adb shell debuggerd -j 2641
++ echo '== web shown pid=[2650] 171.23 405.43'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
@@ -427,206 +426,206 @@ Complete
 + adb shell log -p i -t ShieldHarness 'M slow_drag'
 + swipe 1800 900 1500
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
+++ echo 900
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1200 360 600 1500
+++ echo 450
++ adb shell input swipe 270 900 270 450 1500
 + sleep 2.5
 + mark medium
 + adb shell log -p i -t ShieldHarness 'M medium'
 + swipe 1800 700 400
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
+++ echo 900
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 700
-++ echo 466
-+ adb shell input swipe 360 1200 360 466 400
+++ echo 350
++ adb shell input swipe 270 900 270 350 400
 + sleep 3
 + mark fling_down
 + adb shell log -p i -t ShieldHarness 'M fling_down'
 + swipe 2000 500 80
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 2000
-++ echo 1333
+++ echo 1000
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 500
-++ echo 333
-+ adb shell input swipe 360 1333 360 333 80
+++ echo 250
++ adb shell input swipe 270 1000 270 250 80
 + sleep 4
 + mark fling_up
 + adb shell log -p i -t ShieldHarness 'M fling_up'
 + swipe 500 2000 80
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 500
-++ echo 333
+++ echo 250
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 2000
-++ echo 1333
-+ adb shell input swipe 360 333 360 1333 80
+++ echo 1000
++ adb shell input swipe 270 250 270 1000 80
 + sleep 4
 + mark drag_hold
 + adb shell log -p i -t ShieldHarness 'M drag_hold'
 + touch_ DOWN 1800
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
-+ adb shell input motionevent DOWN 360 1200
+++ echo 900
++ adb shell input motionevent DOWN 270 900
 + sleep 0.15
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1750
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1750
-++ echo 1166
-+ adb shell input motionevent MOVE 360 1166
+++ echo 875
++ adb shell input motionevent MOVE 270 875
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1700
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1700
-++ echo 1133
-+ adb shell input motionevent MOVE 360 1133
+++ echo 850
++ adb shell input motionevent MOVE 270 850
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1650
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1650
-++ echo 1100
-+ adb shell input motionevent MOVE 360 1100
+++ echo 825
++ adb shell input motionevent MOVE 270 825
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1600
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1600
-++ echo 1066
-+ adb shell input motionevent MOVE 360 1066
+++ echo 800
++ adb shell input motionevent MOVE 270 800
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1550
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1550
-++ echo 1033
-+ adb shell input motionevent MOVE 360 1033
+++ echo 775
++ adb shell input motionevent MOVE 270 775
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1500
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1500
-++ echo 1000
-+ adb shell input motionevent MOVE 360 1000
+++ echo 750
++ adb shell input motionevent MOVE 270 750
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1450
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1450
-++ echo 966
-+ adb shell input motionevent MOVE 360 966
+++ echo 725
++ adb shell input motionevent MOVE 270 725
 + for y in 1750 1700 1650 1600 1550 1500 1450 1400
 + touch_ MOVE 1400
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1400
-++ echo 933
-+ adb shell input motionevent MOVE 360 933
+++ echo 700
++ adb shell input motionevent MOVE 270 700
 + sleep 0.8
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1350
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1350
-++ echo 900
-+ adb shell input motionevent MOVE 360 900
+++ echo 675
++ adb shell input motionevent MOVE 270 675
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1300
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1300
-++ echo 866
-+ adb shell input motionevent MOVE 360 866
+++ echo 650
++ adb shell input motionevent MOVE 270 650
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1250
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1250
-++ echo 833
-+ adb shell input motionevent MOVE 360 833
+++ echo 625
++ adb shell input motionevent MOVE 270 625
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1200
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1200
-++ echo 800
-+ adb shell input motionevent MOVE 360 800
+++ echo 600
++ adb shell input motionevent MOVE 270 600
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1150
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1150
-++ echo 766
-+ adb shell input motionevent MOVE 360 766
+++ echo 575
++ adb shell input motionevent MOVE 270 575
 + for y in 1350 1300 1250 1200 1150 1100
 + touch_ MOVE 1100
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1100
-++ echo 733
-+ adb shell input motionevent MOVE 360 733
+++ echo 550
++ adb shell input motionevent MOVE 270 550
 + touch_ UP 1100
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1100
-++ echo 733
-+ adb shell input motionevent UP 360 733
+++ echo 550
++ adb shell input motionevent UP 270 550
 + sleep 3
 + mark repeat_flings
 + adb shell log -p i -t ShieldHarness 'M repeat_flings'
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + sleep 3
 + mark end
@@ -634,88 +633,88 @@ Complete
 + health 'web measured'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2641
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== web measured pid=[2641] 195.59 445.60'
-+ '[' -n 2641 ']'
-+ timeout 20 adb shell debuggerd -j 2641
++ echo '== web measured pid=[2650] 201.11 472.80'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
-+ adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-+ REC=4555
-+ adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/web.mp4
++ adb shell dumpsys accessibility
++ REC=3877
 + sleep 1
++ adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/web.mp4
 + mark video
 + adb shell log -p i -t ShieldHarness 'M video'
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1800
-++ echo 1200
+++ echo 900
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1200 360 600 1500
+++ echo 450
++ adb shell input swipe 270 900 270 450 1500
 + sleep 2.5
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 2000
-++ echo 1333
+++ echo 1000
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 500
-++ echo 333
-+ adb shell input swipe 360 1333 360 333 80
+++ echo 250
++ adb shell input swipe 270 1000 270 250 80
 + sleep 4
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + for i in 1 2 3
 + swipe 1900 900 120
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 1900
-++ echo 1266
+++ echo 950
 ++ X 540
-++ echo 360
+++ echo 270
 ++ Y 900
-++ echo 600
-+ adb shell input swipe 360 1266 360 600 120
+++ echo 450
++ adb shell input swipe 270 950 270 450 120
 + sleep 1.2
 + sleep 2
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 4555
++ kill 3877
 + timeout 60 adb pull /sdcard/web.mp4 /home/runner/work/_temp/results/web.mp4
-/sdcard/web.mp4: 1 file pulled, 0 skipped. 126.4 MB/s (523091 bytes in 0.004s)
+/sdcard/web.mp4: 1 file pulled, 0 skipped. 87.0 MB/s (379231 bytes in 0.004s)
 + mark end
 + adb shell log -p i -t ShieldHarness 'M end'
 + adb shell am force-stop dev.mwkov.shieldtest
 + sleep 2
-+ kill 4063 4064
++ kill 3371 3372
 + adb shell screencap -p /sdcard/last.png
 + adb pull /sdcard/last.png /home/runner/work/_temp/results/last.png
-/sdcard/last.png: 1 file pulled, 0 skipped. 137.5 MB/s (718380 bytes in 0.005s)
+/sdcard/last.png: 1 file pulled, 0 skipped. 95.9 MB/s (491855 bytes in 0.005s)
 + wc -l /home/runner/work/_temp/results/log.txt
-9170 /home/runner/work/_temp/results/log.txt
+10949 /home/runner/work/_temp/results/log.txt
