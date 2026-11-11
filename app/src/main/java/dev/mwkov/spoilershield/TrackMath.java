@@ -85,10 +85,6 @@ final class TrackMath {
     void setPosition(float pos, long at) {
         if (hasTruth && at <= truthT) return;          // older than what we have
         if (!hasTruth) hasV = false;
-        // Predict past the reading for about as long as the next one takes to arrive: on a
-        // slow phone readings come ~100 ms apart and a short limit would stall the covers.
-        long gap = hn > 0 ? at - ht[(hi - 1 + HIST) % HIST] : 0;
-        float ahead = gap > 0 ? Math.max(40f, Math.min(120f, gap * 1.5f)) : 40f;
         hp[hi] = pos;
         ht[hi] = at;
         hi = (hi + 1) % HIST;
@@ -119,7 +115,7 @@ final class TrackMath {
         truth = pos;
         truthT = at;
         hasTruth = true;
-        aheadMs = ahead;
+        aheadMs = 40f;
     }
 
     private void updateVelocity(float sample, long sampleT, long now) {

@@ -24,9 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -37,9 +34,7 @@ import java.util.regex.Pattern;
  *
  * Threads:
  *   main         owns covers and trackers, moves covers every display frame, draws.
- *   shield-event asks which list a scroll event came from (a request to the app).
- *   shield-scan  decides what to read next; reads just the moving list itself.
- *   shield-read  read one window each, in parallel (a slow app can't hold up the rest).
+ *   shield-scan  walks the whole screen's text to find matches (slow: many requests).
  *   shield-poll  re-reads the position of ONE covered item per scrolling list (fast: one
  *                request), so covers follow the content. Two of these, so a slow answer
  *                never holds up the next question.
@@ -64,16 +59,10 @@ public class ShieldService extends AccessibilityService {
     private static final float ITEM_MAX_HEIGHT = 0.3f;
     private static final int MAX_SHIFTS = 4000;
     private static final long DEEP_BUDGET_MS = 2500;
-    private static final long READ_BUDGET_MS = 2000;      // one window, what's on screen
-    private static final int READERS = 3;
-    private static final int MAX_CHAR_LOOKUPS = 24;       // per read: one request each
-    private static final long SHIFT_KEEP_MS = 20000;
     private static final int DEEP_MAX_NODES = 8000;
     // Every read is answered on the other app's main thread. While it scrolls, reading
     // back-to-back steals time from its drawing and from our position re-reads.
-    private static final long SCAN_GAP_MOVING_MS = 600;   // whole screen, while scrolling
-    private static final long LIST_GAP_MOVING_MS = 40;    // just the moving list
-
+    private static final long SCAN_GAP_MOVING_MS = 150;
     private static final long REGEX_BUDGET_MS = 20;
 
     // ---- following the content
@@ -87,14 +76,10 @@ public class ShieldService extends AccessibilityService {
     private static final long STOP_POLL_MS = 90;
     private static final long STOP_EVENT_MS = 220;        // > 2 event batches
     private static final float LEAD_MS = 45f;             // stretch covers by speed x this
-    private static final float MAX_LEAD_PX = 160f;
-    private static final float MAX_UNSURE_PX = 60f;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private HandlerThread scanThread;
     private Handler scanHandler;
-    private HandlerThread eventThread;
-    private Handler eventHandler;
     private final HandlerThread[] pollThreads = new HandlerThread[POLLERS];
     private final Handler[] pollHandlers = new Handler[POLLERS];
     private int nextPoller;
@@ -115,17 +100,19 @@ public class ShieldService extends AccessibilityService {
     // scan thread state (plus the volatiles)
     private final AtomicBoolean scanPending = new AtomicBoolean();
     private final AtomicLong shiftSeq = new AtomicLong();
+    private final Rect scanScreen = new Rect();
+    private final Rect tmp = new Rect();
+    private long scanStartMs;
+    private int scanNodes;
+    private int scanErrors;
+    private long scanStartSeq;
+    private boolean deepAllowed;
     private long lastDeepMs;
-    // Reader threads: one window each at a time (see Read).
-    private ExecutorService readers;
-    private final Set<Integer> readingWindows = ConcurrentHashMap.newKeySet();
+    private boolean deepCut;
+    private List<Rect> scanDeepAreas;
     private volatile boolean scrolling;
     private volatile boolean forceDeep = true;
     private volatile long lastScanStart;
-    private volatile long lastFullScanStart;
-    // The list that is scrolling: while it moves, only it is re-read (a fraction of the work).
-    private final java.util.concurrent.atomic.AtomicReference<AccessibilityNodeInfo> pendingList =
-            new java.util.concurrent.atomic.AtomicReference<>();
     private volatile int regexTimeouts;
 
     // main thread state
@@ -149,7 +136,6 @@ public class ShieldService extends AccessibilityService {
         final Rect clip;         // the scrolling area it lives in; null = not in a list
         final long seq;          // movement counter when r was measured
         AccessibilityNodeInfo node;   // the matched item (never refreshed itself: copies are)
-        int window = -1;         // the window it was read from
         float offX, offY;        // the item's own corner relative to r's corner
 
         Cover(RectF r, Rect clip, long seq) {
@@ -162,7 +148,6 @@ public class ShieldService extends AccessibilityService {
     /** Movement applied to covers, kept so late read results can be brought up to date. */
     private static final class Shift {
         final long seq;
-        final long at = SystemClock.uptimeMillis();
         final Tracker t;
         final float dx, dy;
 
@@ -183,7 +168,6 @@ public class ShieldService extends AccessibilityService {
         long lastSend, newestPollAt;
         int lastSX = -1, lastSY = -1;
         int inFlight;
-        int epoch;               // bumped when a read moves this list's covers
         boolean moving;
         Cover anchor;
         float lastPollX = Float.NaN, lastPollY = Float.NaN;
@@ -227,14 +211,6 @@ public class ShieldService extends AccessibilityService {
         scanThread = new HandlerThread("shield-scan");
         scanThread.start();
         scanHandler = new Handler(scanThread.getLooper());
-        eventThread = new HandlerThread("shield-event");
-        eventThread.start();
-        eventHandler = new Handler(eventThread.getLooper());
-        readers = Executors.newFixedThreadPool(READERS, r -> {
-            Thread th = new Thread(r, "shield-read");
-            th.setDaemon(true);
-            return th;
-        });
         for (int i = 0; i < POLLERS; i++) {
             pollThreads[i] = new HandlerThread("shield-poll-" + i);
             pollThreads[i].start();
@@ -328,8 +304,6 @@ public class ShieldService extends AccessibilityService {
         main.removeCallbacksAndMessages(null);
         if (framesRunning) Choreographer.getInstance().removeFrameCallback(frameCallback);
         if (scanThread != null) scanThread.quitSafely();
-        if (eventThread != null) eventThread.quitSafely();
-        if (readers != null) readers.shutdownNow();
         for (HandlerThread t : pollThreads) if (t != null) t.quitSafely();
         if (prefs != null) prefs.unregisterOnSharedPreferenceChangeListener(prefListener);
         for (View v : new View[]{overlay, fingerWatcher}) {
@@ -353,13 +327,7 @@ public class ShieldService extends AccessibilityService {
         if (!enabled) return;
         int type = event.getEventType();
         if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            // Which list scrolled is only known by asking the app (getSource is a request
-            // answered on its main thread). Never ask from here: a busy app would freeze our
-            // main thread, and with it every cover's movement. Ask on the event thread.
-            final long arrived = SystemClock.uptimeMillis();
-            final AccessibilityEvent copy = Build.VERSION.SDK_INT >= 30
-                    ? new AccessibilityEvent(event) : AccessibilityEvent.obtain(event);
-            if (eventHandler != null) eventHandler.post(() -> resolveScroll(copy, arrived));
+            onScrolled(event);
         } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // New screen: tracking from the old one no longer applies.
             trackers.clear();
@@ -391,8 +359,7 @@ public class ShieldService extends AccessibilityService {
         if (any) startFrames();   // the frame loop re-reads hot lists every frame
     }
 
-    /** Event thread: find out which list scrolled, then continue on main. */
-    private void resolveScroll(AccessibilityEvent event, long arrived) {
+    private void onScrolled(AccessibilityEvent event) {
         AccessibilityNodeInfo src;
         try {
             src = event.getSource();
@@ -403,19 +370,6 @@ public class ShieldService extends AccessibilityService {
         Rect container = new Rect();
         src.getBoundsInScreen(container);
         if (container.isEmpty()) return;
-        pendingList.set(src);
-        String cls = null;
-        if (debug) {
-            CharSequence cn = src.getClassName();
-            cls = cn == null ? "?" : cn.toString();
-            cls = cls.substring(cls.lastIndexOf('.') + 1);
-        }
-        final String name = cls;
-        main.post(() -> onScrolled(event, container, name, arrived));
-    }
-
-    private void onScrolled(AccessibilityEvent event, Rect container, String cls, long arrived) {
-        if (!enabled) return;
         Tracker t = trackerFor(container);
 
         int dx = 0, dy = 0;
@@ -433,25 +387,14 @@ public class ShieldService extends AccessibilityService {
         t.lastSX = sx;
         t.lastSY = sy;
         if (debug) {
-            dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + cls + " h=" + container.height()
-                    + " late=" + (SystemClock.uptimeMillis() - arrived) + "ms";
+            CharSequence cn = src.getClassName();
+            String cls = cn == null ? "?" : cn.toString();
+            cls = cls.substring(cls.lastIndexOf('.') + 1);
+            dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + cls + " h=" + container.height();
         }
+        if (dx == 0 && dy == 0) return;
+
         long now = SystemClock.uptimeMillis();
-        if (trace) android.util.Log.i("ShieldTrace", "E " + now + " " + (now - arrived) + " " + dy);
-        if (dx == 0 && dy == 0) {
-            // Some lists (ListView and others that move rows instead of scrolling) report
-            // "I scrolled" without saying how far. It still means: this list is moving now.
-            // Re-read its position every frame; that is where the movement comes from.
-            t.lastEventArr = Math.max(t.lastEventArr, arrived);
-            t.lastSeen = now;
-            t.hotUntil = Math.max(t.hotUntil, now + HOT_AFTER_MOVE_MS);
-            if (pickAnchor(t) != null || armed) {
-                t.moving = true;
-                scrolling = true;
-                startFrames();
-            }
-            return;
-        }
         long at = event.getEventTime();   // when the app sent it: no delivery jitter
         if (at <= 0 || at > now) at = now;
         if (Math.abs(dy) > container.height() * 3 || Math.abs(dx) > container.width() * 3) {
@@ -470,7 +413,7 @@ public class ShieldService extends AccessibilityService {
             t.ty.addDelta(-dy, at, window);
         }
         t.lastEventSent = at;
-        t.lastEventArr = Math.max(t.lastEventArr, arrived);
+        t.lastEventArr = now;
         t.lastSeen = now;
         t.hotUntil = Math.max(t.hotUntil, now + HOT_AFTER_MOVE_MS);
         t.moving = true;
@@ -596,14 +539,13 @@ public class ShieldService extends AccessibilityService {
         if (h == null) return;
         t.inFlight++;
         t.lastSend = now;
-        final int epoch = t.epoch;
         final float shownX = t.tx.shown(), shownY = t.ty.shown();
         final float drawnX = a.r.left + a.offX, drawnY = a.r.top + a.offY;
         final Pattern p = pattern;
         final AccessibilityNodeInfo original = a.node;
         h.post(() -> {
             long t0 = SystemClock.uptimeMillis();
-            boolean ok = false, still = false, shows = false;
+            boolean ok = false, still = false;
             Rect b = new Rect();
             try {
                 // A private copy, so two re-reads can run at once without sharing state.
@@ -615,29 +557,22 @@ public class ShieldService extends AccessibilityService {
                     n.getBoundsInScreen(b);
                     // RecyclerView reuses rows: if the text no longer matches, this row now
                     // shows something else and its position means nothing.
-                    shows = p != null
+                    still = n.isVisibleToUser() && p != null
                             && (matches(p, n.getText()) || matches(p, n.getContentDescription()));
-                    still = shows && n.isVisibleToUser();
                 }
             } catch (RuntimeException e) {
                 ok = false;
             }
             long t1 = SystemClock.uptimeMillis();
             final boolean fine = ok && still && !b.isEmpty();
-            // answered, and it shows other content now (or scrolled out of view)
-            final int gone = !ok || still ? 0 : shows ? 1 : 2;
-            main.post(() -> onPoll(t, a, epoch, fine, gone, b, t0, t1, shownX, shownY,
-                    drawnX, drawnY));
+            main.post(() -> onPoll(t, a, fine, b, t0, t1, shownX, shownY, drawnX, drawnY));
         });
     }
 
-    private void onPoll(Tracker t, Cover a, int epoch, boolean ok, int gone, Rect b,
-            long t0, long t1, float shownX, float shownY, float drawnX, float drawnY) {
+    private void onPoll(Tracker t, Cover a, boolean ok, Rect b, long t0, long t1,
+            float shownX, float shownY, float drawnX, float drawnY) {
         t.inFlight = Math.max(0, t.inFlight - 1);
         if (!trackers.contains(t)) return;
-        // A read put this list's covers in new places after this question was asked: the
-        // answer compares against where they were then, so it would correct twice.
-        if (epoch != t.epoch) return;
         long now = SystemClock.uptimeMillis();
         if (trace) android.util.Log.i("ShieldTrace", "Q " + now + " " + (t1 - t0) + " " + ok);
         if (debug) {
@@ -648,10 +583,6 @@ public class ShieldService extends AccessibilityService {
         if (t.anchor != a) return;
         if (!ok) {
             t.anchor = null;
-            // The row now shows other content (lists reuse rows) or scrolled away: its cover
-            // marks nothing any more. A fresh read places covers where the text is now.
-            // (Out of view on a page that was read whole: keep it for when it comes back.)
-            if (gone == 2 || (gone == 1 && !wholePageRead(t.c))) dropStale(a);
             return;
         }
         // The position is from the app's last drawn frame, a few ms before it answered.
@@ -665,7 +596,6 @@ public class ShieldService extends AccessibilityService {
         float plausible = 200 + (Math.abs(t.ty.velocity()) + Math.abs(t.tx.velocity())) * 120;
         if (jump > plausible) {   // the row was reused for other content: pick another
             t.anchor = null;
-            dropStale(a);
             return;
         }
         boolean moved = !Float.isNaN(t.lastPollY)
@@ -686,14 +616,6 @@ public class ShieldService extends AccessibilityService {
         }
         if (t.busy(now) || t.hot(now)) startFrames();
     }
-    private void dropStale(Cover a) {
-        if (!covers.remove(a)) return;
-        List<Cover> next = new ArrayList<>(covers);   // covers is replaced, never shared
-        covers = next;
-        render();
-        scheduleScan(0);
-    }
-
 
     /** While still, re-read now and then to notice a scroll that started without a touch. */
     private void scheduleIdlePoll() {
@@ -715,168 +637,75 @@ public class ShieldService extends AccessibilityService {
     }
 
     // =====================================================================
-    // Reading the screen
+    // Reading the screen (scan thread)
     // =====================================================================
-
-    /**
-     * One read of one window (or of just the moving list), with its own state. Windows are
-     * read in parallel: every request is answered on that app's main thread, and one window
-     * that answers slowly (a busy app, a frozen dialog) must not hold back the others.
-     */
-    private static final class Read {
-        final long start = SystemClock.uptimeMillis();
-        final long startSeq;
-        final boolean deep;       // may also read what's scrolled out of view
-        final Rect screen = new Rect();
-        final Rect tmp = new Rect();
-        final List<Cover> found = new ArrayList<>();
-        final List<Rect> deepAreas = new ArrayList<>();
-        int nodes, errors, scrollables, invisibles, charLookups;
-        boolean deepCut, timedOut;
-
-        Read(long startSeq, boolean deep) {
-            this.startSeq = startSeq;
-            this.deep = deep;
-        }
-    }
 
     private void scheduleScan(long delay) {
         if (scanHandler == null) return;
         if (!scanPending.compareAndSet(false, true)) return;
         if (scrolling) {
-            long now = SystemClock.uptimeMillis();
-            boolean listNext = pendingList.get() != null
-                    && now - lastFullScanStart < SCAN_GAP_MOVING_MS;
-            long gap = listNext ? LIST_GAP_MOVING_MS : SCAN_GAP_MOVING_MS;
-            long since = now - (listNext ? lastScanStart : lastFullScanStart);
-            delay = Math.max(delay, gap - since);
+            long since = SystemClock.uptimeMillis() - lastScanStart;
+            delay = Math.max(delay, SCAN_GAP_MOVING_MS - since);
         }
         scanHandler.postDelayed(scanRunnable, Math.max(0, delay));
     }
 
-    /** Scan thread: decides what to read and hands each window to a reader thread. */
     private void backgroundScan() {
         scanPending.set(false);
-        final Pattern p = pattern;
-        if (!enabled || p == null) return;
-        long now = SystemClock.uptimeMillis();
-        lastScanStart = now;
+        final long startSeq = shiftSeq.get();
+        scanStartMs = SystemClock.uptimeMillis();
+        lastScanStart = scanStartMs;
+        scanNodes = 0;
+        scanErrors = 0;
+        scanStartSeq = startSeq;
         // While still, the app answers fast: read the whole page (also what's scrolled out
         // of view), so covers are ready before it scrolls in. Not more than every 3 s
         // unless a scroll just ended or the screen changed.
-        boolean deep = !scrolling && (forceDeep || now - lastDeepMs > 3000);
-        // While scrolling, read only the moving list most of the time; every window every
-        // SCAN_GAP_MOVING_MS so nothing elsewhere is missed.
-        AccessibilityNodeInfo list = pendingList.getAndSet(null);
-        if (list != null && scrolling && !deep && now - lastFullScanStart < SCAN_GAP_MOVING_MS
-                && readList(list, p)) {
-            return;
-        }
-        if (deep) {
+        deepAllowed = !scrolling && (forceDeep || scanStartMs - lastDeepMs > 3000);
+        if (deepAllowed) {
             forceDeep = false;
-            lastDeepMs = now;
+            lastDeepMs = scanStartMs;
         }
-        lastFullScanStart = now;
-        final long seq = shiftSeq.get();
-        List<AccessibilityWindowInfo> windows;
-        try {
-            windows = getWindows();
-        } catch (RuntimeException e) {
-            windows = null;
-        }
-        if (windows == null || windows.isEmpty()) {
-            AccessibilityNodeInfo root;
+        deepCut = false;
+        scanDeepAreas = new ArrayList<>();
+        final List<Cover> found = new ArrayList<>();
+        Pattern p = pattern;
+        if (enabled && p != null) {
+            readScreenBounds(scanScreen);
+            List<AccessibilityWindowInfo> windows;
             try {
-                root = getRootInActiveWindow();
+                windows = getWindows();
             } catch (RuntimeException e) {
-                root = null;
+                windows = null;
             }
-            if (root != null) {
-                Read rd = new Read(seq, deep);
-                readScreenBounds(rd.screen);
-                scanRoot(rd, root, p);
-                Rect wb = new Rect(rd.screen);
-                int id = root.getWindowId();
-                traceRead(rd, "win active");
-                main.post(() -> applyRead(rd, id, wb, null));
-            }
-            return;
-        }
-        final Set<Integer> present = new HashSet<>();
-        for (AccessibilityWindowInfo w : windows) {
-            int type = w.getType();
-            if (type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
-                    || type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) {
-                continue;
-            }
-            present.add(w.getId());
-            readWindow(w, seq, deep, p);
-        }
-        main.post(() -> dropGoneWindows(present));
-    }
-
-    private void readWindow(AccessibilityWindowInfo w, long seq, boolean deep, Pattern p) {
-        final int id = w.getId();
-        if (!readingWindows.add(id)) return;   // still being read from before: its answer comes
-        final Rect wb = new Rect();
-        w.getBoundsInScreen(wb);
-        final String label = trace ? "win " + w.getType() + " " + w.getTitle() : null;
-        try {
-            readers.execute(() -> {
-                Read rd = new Read(seq, deep);
-                try {
-                    readScreenBounds(rd.screen);
-                    AccessibilityNodeInfo root = rootOf(w);
-                    if (root != null) {
-                        scanRoot(rd, root, p);
-                    } else if (SystemClock.uptimeMillis() - rd.start > 1000) {
-                        rd.errors++;   // it didn't answer in time: we know nothing about it
+            if (windows != null && !windows.isEmpty()) {
+                for (AccessibilityWindowInfo w : windows) {
+                    int type = w.getType();
+                    if (type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+                            || type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) {
+                        continue;
                     }
-                } catch (RuntimeException e) {
-                    rd.errors++;
-                } finally {
-                    readingWindows.remove(id);
+                    scanRoot(rootOf(w), p, found);
                 }
-                traceRead(rd, label);
-                main.post(() -> applyRead(rd, id, wb, null));
-            });
-        } catch (RuntimeException e) {   // shutting down
-            readingWindows.remove(id);
+            } else {
+                try {
+                    scanRoot(getRootInActiveWindow(), p, found);
+                } catch (RuntimeException ignored) {
+                }
+            }
         }
-    }
-
-    /** Just the moving list (scan thread). False if it can't be read: read everything then. */
-    private boolean readList(AccessibilityNodeInfo list, Pattern p) {
-        Read rd = new Read(shiftSeq.get(), false);
-        Rect area = new Rect();
-        try {
-            if (!list.refresh()) return false;
-            list.getBoundsInScreen(area);
-        } catch (RuntimeException e) {
-            return false;
-        }
-        if (area.isEmpty()) return false;
-        readScreenBounds(rd.screen);
-        CharSequence pk = list.getPackageName();
-        if (pk == null || !(pk.toString().equals(getPackageName())
-                || ignored.contains(pk.toString()))) {
-            walk(rd, list, p, 0, null);
-        }
-        traceRead(rd, "list");
-        main.post(() -> applyRead(rd, list.getWindowId(), null, area));
-        return true;
-    }
-
-    private void traceRead(Read rd, String label) {
-        if (!trace) return;
-        long now = SystemClock.uptimeMillis();
-        android.util.Log.i("ShieldTrace", "S " + now + " " + (now - rd.start) + " " + rd.nodes
-                + " " + rd.found.size() + " " + rd.errors + " "
-                + (label == null ? "win" : label.replace('\n', ' ')));
-        android.util.Log.i("ShieldTrace", "D " + now + " scrollables=" + rd.scrollables
-                + " invisible=" + rd.invisibles + " deep=" + rd.deep + " cut=" + rd.deepCut
-                + " timeout=" + rd.timedOut + " areas=" + rd.deepAreas.size()
-                + " charlookups=" + rd.charLookups);
+        final long took = SystemClock.uptimeMillis() - scanStartMs;
+        final int nodes = scanNodes;
+        final int errors = scanErrors;
+        final boolean deepDone = deepAllowed && !deepCut && errors == 0;
+        final List<Rect> areas = scanDeepAreas;
+        if (trace) android.util.Log.i("ShieldTrace", "S " + SystemClock.uptimeMillis() + " " + took
+                + " " + nodes + " " + found.size() + " " + errors);
+        main.post(() -> {
+            dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits, "
+                    + errors + " err, " + (deepDone ? "FULL x" + areas.size() : "visible");
+            applyScan(found, startSeq, errors, deepDone, areas);
+        });
     }
 
     private static AccessibilityNodeInfo rootOf(AccessibilityWindowInfo w) {
@@ -891,7 +720,7 @@ public class ShieldService extends AccessibilityService {
         }
     }
 
-    private void scanRoot(Read rd, AccessibilityNodeInfo root, Pattern p) {
+    private void scanRoot(AccessibilityNodeInfo root, Pattern p, List<Cover> out) {
         if (root == null) return;
         CharSequence pkg = root.getPackageName();
         if (pkg != null) {
@@ -899,69 +728,47 @@ public class ShieldService extends AccessibilityService {
             // Never cover our own settings screen, so the keyword list stays editable.
             if (name.equals(getPackageName()) || ignored.contains(name)) return;
         }
-        walk(rd, root, p, 0, null);
+        walk(root, p, out, 0, null);
     }
 
     /** @param container bounds of the nearest scrolling ancestor, or null */
-    private void walk(Read rd, AccessibilityNodeInfo node, Pattern p, int depth, Rect container) {
-        if (node == null || depth > MAX_DEPTH || rd.timedOut) return;
-        rd.nodes++;
-        if (SystemClock.uptimeMillis() - rd.start > READ_BUDGET_MS) {
-            rd.timedOut = true;   // app answers too slowly: hand over what we have, try again
-            rd.errors++;
-            return;
-        }
+    private void walk(AccessibilityNodeInfo node, Pattern p, List<Cover> out, int depth,
+            Rect container) {
+        if (node == null || depth > MAX_DEPTH) return;
+        scanNodes++;
         try {
             boolean visible = node.isVisibleToUser();
             if (!visible) {
-                rd.invisibles++;
                 if (container == null) return;
-                if (!rd.deep || scrolling || rd.nodes > DEEP_MAX_NODES
-                        || SystemClock.uptimeMillis() - rd.start > DEEP_BUDGET_MS) {
-                    rd.deepCut = true;
+                if (!deepAllowed || scrolling || scanNodes > DEEP_MAX_NODES
+                        || SystemClock.uptimeMillis() - scanStartMs > DEEP_BUDGET_MS) {
+                    deepCut = true;
                     return;
                 }
-                boundsOf(node, rd.tmp);
-                if (trace && rd.invisibles <= 3 && rd.deep) {
-                    CharSequence tx = node.getText();
-                    android.util.Log.i("ShieldTrace", "I " + SystemClock.uptimeMillis() + " "
-                            + rd.tmp.toShortString() + " in " + container.toShortString() + " "
-                            + node.getClassName() + " '" + (tx == null ? "" : tx.subSequence(0,
-                            Math.min(20, tx.length()))) + "' extras=" + bundleText(node.getExtras()));
-                }
-                if (rd.tmp.isEmpty()) return;
-                if (Rect.intersects(rd.tmp, container)) return;      // hidden, not scrolled off
-                if (rd.tmp.right <= container.left || rd.tmp.left >= container.right) return;
+                node.getBoundsInScreen(tmp);
+                if (tmp.isEmpty()) return;
+                if (Rect.intersects(tmp, container)) return;          // hidden, not scrolled off
+                if (tmp.right <= container.left || tmp.left >= container.right) return;
                 boolean known = false;
-                for (Rect a : rd.deepAreas) {
+                for (Rect a : scanDeepAreas) {
                     if (a.equals(container)) {
                         known = true;
                         break;
                     }
                 }
-                if (!known) rd.deepAreas.add(new Rect(container));
+                if (!known) scanDeepAreas.add(new Rect(container));
             }
 
             if (!node.isEditable() && (matches(p, node.getText())
                     || matches(p, node.getContentDescription())
                     || (Build.VERSION.SDK_INT >= 30 && matches(p, node.getStateDescription())))) {
-                AccessibilityNodeInfo hit = tightest(node, p, 0);
-                if (trace && rd.found.isEmpty()) {
-                    Rect hb = new Rect();
-                    hit.getBoundsInScreen(hb);
-                    android.util.Log.i("ShieldTrace", "T " + SystemClock.uptimeMillis() + " "
-                            + hit.getClassName() + " " + hb.toShortString() + " children="
-                            + hit.getChildCount() + " extra=" + (Build.VERSION.SDK_INT >= 26
-                            ? hit.getAvailableExtraData() : null));
-                }
-                Cover c = coverFor(rd, hit, container);
-                if (c != null) rd.found.add(c);
+                Cover c = coverFor(node, container);
+                if (c != null) out.add(c);
                 return; // everything inside is covered already
             }
 
             Rect childContainer = container;
             if (visible && node.isScrollable()) {
-                rd.scrollables++;
                 Rect b = new Rect();
                 node.getBoundsInScreen(b);
                 if (!b.isEmpty()) childContainer = b;
@@ -971,30 +778,11 @@ public class ShieldService extends AccessibilityService {
                 AccessibilityNodeInfo child = Build.VERSION.SDK_INT >= 33
                         ? node.getChild(i, AccessibilityNodeInfo.FLAG_PREFETCH_DESCENDANTS_DEPTH_FIRST)
                         : node.getChild(i);
-                walk(rd, child, p, depth + 1, childContainer);
+                walk(child, p, out, depth + 1, childContainer);
             }
         } catch (RuntimeException ignored) {
-            rd.errors++;   // node went stale mid-read: this read is incomplete
+            scanErrors++;   // node went stale mid-read: this read is incomplete
         }
-    }
-
-    /**
-     * The smallest item that still contains the match: a web paragraph reports its text, but
-     * so does the line inside it, and covering just the line hides the right thing.
-     */
-    private AccessibilityNodeInfo tightest(AccessibilityNodeInfo node, Pattern p, int depth) {
-        if (depth > 6) return node;
-        int n = node.getChildCount();
-        for (int i = 0; i < n; i++) {
-            AccessibilityNodeInfo child = Build.VERSION.SDK_INT >= 33
-                    ? node.getChild(i, AccessibilityNodeInfo.FLAG_PREFETCH_DESCENDANTS_DEPTH_FIRST)
-                    : node.getChild(i);
-            if (child == null || !child.isVisibleToUser()) continue;
-            if (matches(p, child.getText()) || matches(p, child.getContentDescription())) {
-                return tightest(child, p, depth + 1);
-            }
-        }
-        return node;
     }
 
     private boolean matches(Pattern p, CharSequence s) {
@@ -1011,39 +799,19 @@ public class ShieldService extends AccessibilityService {
      * The matching text's bounds. With "cover whole item" on and the text in a list, grow to
      * the item around it (text plus its picture). Text outside lists is covered alone.
      */
-    private Cover coverFor(Read rd, AccessibilityNodeInfo node, Rect container) {
-        long seq = rd.startSeq;
+    private Cover coverFor(AccessibilityNodeInfo node, Rect container) {
+        long seq = scanStartSeq;
         Rect r = new Rect();
-        boundsOf(node, r);
+        node.getBoundsInScreen(r);
         if (r.isEmpty()) return null;
-        int window = node.getWindowId();
-        boolean onScreen = node.isVisibleToUser();
-        // Cover the text itself, not the box around it: a web paragraph's box includes its
-        // padding, a text view's its padding. Ask where the characters are drawn.
-        boolean measuredNow = false;
-        int nodeLeft = r.left, nodeTop = r.top;
-        if (onScreen && (!coverCard || container == null)) {
-            long s0 = shiftSeq.get();
-            Rect nb = new Rect(), tb = new Rect();
-            if (textBounds(rd, node, tb, nb) && tb.intersect(nb)) {
-                r.set(tb);
-                nodeLeft = nb.left;
-                nodeTop = nb.top;
-                seq = s0;
-                measuredNow = true;
-            }
-        }
         if (container == null) {
-            if (!rd.screen.isEmpty() && !r.intersect(rd.screen)) return null;
-            Cover c = new Cover(new RectF(r), null, seq);
-            c.window = window;
-            return c;
+            if (!scanScreen.isEmpty() && !r.intersect(scanScreen)) return null;
+            return new Cover(new RectF(r), null, seq);
         }
-        final int oldLeft = nodeLeft, oldTop = nodeTop;
+        final int oldLeft = r.left, oldTop = r.top;
         final long textArea = Math.max(1L, (long) r.width() * r.height());
-        Rect tmp = rd.tmp;
-        if (coverCard && !rd.screen.isEmpty()) {
-            int maxH = (int) (rd.screen.height() * ITEM_MAX_HEIGHT);
+        if (coverCard && !scanScreen.isEmpty()) {
+            int maxH = (int) (scanScreen.height() * ITEM_MAX_HEIGHT);
             AccessibilityNodeInfo cur = node;
             for (int i = 0; i < MAX_CLIMB; i++) {
                 AccessibilityNodeInfo parent = cur.getParent();
@@ -1060,7 +828,8 @@ public class ShieldService extends AccessibilityService {
         }
         // Positions above may be a batch old. While scrolling, re-read this one item and
         // slide the cover by however far it moved since (one request per hit).
-        if (scrolling && !measuredNow) {
+        int nodeLeft = oldLeft, nodeTop = oldTop;
+        if (scrolling) {
             long now = shiftSeq.get();
             if (node.refresh()) {
                 node.getBoundsInScreen(tmp);
@@ -1071,79 +840,14 @@ public class ShieldService extends AccessibilityService {
                     seq = now;
                 }
             } else {
-                rd.errors++;
+                scanErrors++;
             }
         }
         Cover c = new Cover(new RectF(r), new Rect(container), seq);
         c.node = node;
-        c.window = window;
         c.offX = nodeLeft - r.left;
         c.offY = nodeTop - r.top;
         return c;
-    }
-
-    /**
-     * Where the node's characters are drawn (union), and the node's own bounds measured in the
-     * same answer. Text views, web views and Compose text answer this; others return false.
-     */
-    private boolean textBounds(Read rd, AccessibilityNodeInfo node, Rect text, Rect nodeBounds) {
-        if (Build.VERSION.SDK_INT < 26 || rd.charLookups >= MAX_CHAR_LOOKUPS) return false;
-        // Apps advertise it under the framework name or AndroidX's (web views use the latter).
-        List<String> extra = node.getAvailableExtraData();
-        if (extra == null) return false;
-        String key = null;
-        for (String k : extra) if (k.endsWith("DATA_TEXT_CHARACTER_LOCATION_KEY")) key = k;
-        if (key == null) return false;
-        String argPrefix = key.substring(0, key.length() - "KEY".length());
-        CharSequence s = node.getText();
-        if (s == null || s.length() == 0 || s.length() > 2000) return false;
-        rd.charLookups++;
-        android.os.Bundle args = new android.os.Bundle();
-        args.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, 0);
-        args.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, s.length());
-        args.putInt(argPrefix + "ARG_START_INDEX", 0);
-        args.putInt(argPrefix + "ARG_LENGTH", s.length());
-        AccessibilityNodeInfo copy = Build.VERSION.SDK_INT >= 30
-                ? new AccessibilityNodeInfo(node) : AccessibilityNodeInfo.obtain(node);
-        if (!copy.refreshWithExtraData(key, args)) return false;
-        android.os.Parcelable[] boxes = copy.getExtras().getParcelableArray(key);
-        if (boxes == null) return false;
-        RectF u = null;
-        for (android.os.Parcelable b : boxes) {
-            if (!(b instanceof RectF)) continue;   // null = character not on screen
-            RectF f = (RectF) b;
-            if (f.width() <= 0 || f.height() <= 0) continue;
-            if (u == null) u = new RectF(f); else u.union(f);
-        }
-        if (u == null) return false;
-        text.set((int) Math.floor(u.left), (int) Math.floor(u.top),
-                (int) Math.ceil(u.right), (int) Math.ceil(u.bottom));
-        copy.getBoundsInScreen(nodeBounds);
-        return !text.isEmpty() && !nodeBounds.isEmpty();
-    }
-
-    /**
-     * The node's bounds on screen. For something scrolled out of view Android cuts the box
-     * at the edge of the view, which loses where it really is. Web views also report the
-     * uncut edges ("unclippedTop/Bottom"): with those, a whole web page is known in advance.
-     */
-    private static void boundsOf(AccessibilityNodeInfo node, Rect out) {
-        node.getBoundsInScreen(out);
-        if (out.top < out.bottom && out.left < out.right) return;
-        android.os.Bundle x = node.getExtras();
-        if (x == null) return;
-        int top = x.getInt("AccessibilityNodeInfo.unclippedTop", Integer.MIN_VALUE);
-        int bottom = x.getInt("AccessibilityNodeInfo.unclippedBottom", Integer.MIN_VALUE);
-        if (top != Integer.MIN_VALUE) out.top = top;
-        if (bottom != Integer.MIN_VALUE) out.bottom = bottom;
-        if (out.top >= out.bottom) out.setEmpty();
-    }
-
-    private static String bundleText(android.os.Bundle b) {
-        if (b == null) return "-";
-        StringBuilder sb = new StringBuilder("{");
-        for (String k : b.keySet()) sb.append(k).append('=').append(b.get(k)).append(' ');
-        return sb.append('}').toString();
     }
 
     private void readScreenBounds(Rect out) {
@@ -1161,48 +865,14 @@ public class ShieldService extends AccessibilityService {
     // Results (main thread)
     // =====================================================================
 
-    /** A window closed (a dialog, a popup): its covers go with it. */
-    private void dropGoneWindows(Set<Integer> present) {
-        boolean changed = false;
-        for (Iterator<Cover> it = covers.iterator(); it.hasNext(); ) {
-            Cover c = it.next();
-            if (c.window != -1 && !present.contains(c.window)) {
-                it.remove();
-                changed = true;
-            }
-        }
-        if (changed) render();
-    }
-
-    /**
-     * One window's (or one list's) read is in. It replaces what is known about that window
-     * only; covers elsewhere stay as they are.
-     *
-     * @param partial the list that was read alone, or null for a whole window
-     */
-    private void applyRead(Read rd, int window, Rect windowArea, Rect partial) {
-        List<Cover> found = rd.found;
-        long startSeq = rd.startSeq;
-        boolean deepDone = partial == null && rd.deep && !rd.deepCut && rd.errors == 0;
-        Rect area = partial != null ? partial : windowArea;
-        if (debug) {
-            dbgScan = "scan: " + (SystemClock.uptimeMillis() - rd.start) + "ms, " + rd.nodes
-                    + " nodes, " + found.size() + " hits, " + rd.errors + " err, "
-                    + (partial != null ? "list" : deepDone ? "FULL x" + rd.deepAreas.size()
-                    : "visible");
-        }
+    private void applyScan(List<Cover> found, long startSeq, int errors, boolean deepDone,
+            List<Rect> areas) {
         // A read that hit errors may have missed spoilers: never uncover on its word.
-        boolean incomplete = rd.errors > 0 && incompleteStreak < 6;
-        incompleteStreak = rd.errors > 0 ? incompleteStreak + 1 : 0;
+        boolean incomplete = errors > 0 && incompleteStreak < 6;
+        incompleteStreak = errors > 0 ? incompleteStreak + 1 : 0;
         List<Cover> keep = new ArrayList<>();
-        List<Cover> scope = new ArrayList<>();
-        for (Cover old : covers) {
-            boolean in = partial != null ? movesWith(old.clip, partial)
-                    : old.window == window || (old.window == -1 && window == -1);
-            if (in) scope.add(old); else keep.add(old);
-        }
         if (incomplete) {
-            for (Cover old : scope) {
+            for (Cover old : covers) {
                 boolean refound = false;
                 for (Cover c : found) {
                     if (RectF.intersects(old.r, c.r)) {
@@ -1215,22 +885,14 @@ public class ShieldService extends AccessibilityService {
         } else if (!deepDone) {
             // This read only looked at what's on screen: covers placed earlier for content
             // still scrolled out of view stay.
-            // Only where the whole page was read before (web pages): a recycling list throws
-            // away rows that leave the screen, so a cover kept for one would end up on
-            // whatever row reuses it.
             RectF clipF = new RectF();
-            for (Cover old : scope) {
-                if (old.clip == null || !wholePageRead(old.clip)) continue;
+            for (Cover old : covers) {
+                if (old.clip == null) continue;
                 clipF.set(old.clip);
                 if (!RectF.intersects(old.r, clipF)) keep.add(old);
             }
         }
-        if (deepDone) {
-            List<Rect> next = new ArrayList<>();
-            for (Rect a : deepAreas) if (area == null || overlapShare(a, area) < 0.6f) next.add(a);
-            next.addAll(rd.deepAreas);
-            deepAreas = next;
-        }
+        if (deepDone) deepAreas = areas;
 
         // Bring results measured during movement up to date.
         for (Shift s : shifts) {
@@ -1239,14 +901,13 @@ public class ShieldService extends AccessibilityService {
                 if (s.seq > c.seq && movesWith(c.clip, s.t.c)) c.r.offset(s.dx, s.dy);
             }
         }
+        for (Iterator<Shift> it = shifts.iterator(); it.hasNext(); ) {
+            if (it.next().seq <= startSeq) it.remove();
+        }
         // Whatever moved after this read began is still unread (edge curtain).
         if (!incomplete) {
-            for (Tracker t : trackers) {
-                if (area == null || movesWith(t.c, area)) t.unX = t.unY = 0;
-            }
+            for (Tracker t : trackers) t.unX = t.unY = 0;
             for (Shift s : shifts) {
-                if (s.seq <= startSeq) continue;
-                if (area != null && !movesWith(s.t.c, area)) continue;
                 s.t.unX += s.dx;
                 s.t.unY += s.dy;
             }
@@ -1261,7 +922,7 @@ public class ShieldService extends AccessibilityService {
             for (int i = 0; i < found.size(); i++) {
                 Cover f = found.get(i);
                 if (f.node == null) continue;
-                for (Cover old : scope) {
+                for (Cover old : covers) {
                     if (old.node == null || !old.node.equals(f.node)) continue;
                     if (Math.abs(old.r.top - f.r.top) <= 48 && Math.abs(old.r.left - f.r.left) <= 48
                             && old.r.width() >= f.r.width() * 0.8f) {
@@ -1271,15 +932,8 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
-        // Covers placed by this read: re-reads already on their way measured against the old
-        // places and must not be applied on top.
-        for (Cover c : found) {
-            if (scope.contains(c) || c.clip == null) continue;
-            for (Tracker t : trackers) if (movesWith(c.clip, t.c)) t.epoch++;
-        }
-        List<Cover> next = new ArrayList<>(found);
-        next.addAll(keep);
-        covers = next;
+        found.addAll(keep);
+        covers = found;
         // Every list with covers gets a tracker, so its re-reads can start right away.
         for (Cover c : covers) {
             if (c.node != null && c.clip != null && !c.clip.isEmpty()) trackerFor(c.clip);
@@ -1288,10 +942,6 @@ public class ShieldService extends AccessibilityService {
         if (!enabled) armed = false;
 
         long now = SystemClock.uptimeMillis();
-        // Old movement records are only needed by reads still running (none run this long).
-        for (Iterator<Shift> it = shifts.iterator(); it.hasNext(); ) {
-            if (now - it.next().at > SHIFT_KEEP_MS) it.remove(); else break;
-        }
         boolean anyActive = false;
         for (Iterator<Tracker> it = trackers.iterator(); it.hasNext(); ) {
             Tracker t = it.next();
@@ -1305,14 +955,9 @@ public class ShieldService extends AccessibilityService {
         readScreenBounds(screenMain);
         render();
 
-        boolean curtainUp = false;
-        for (Tracker t : trackers) if (t.unX != 0 || t.unY != 0) curtainUp = true;
         main.removeCallbacks(recheckRunnable);
         if (anyActive || incomplete) {
-            // keep reading while it scrolls / until clean (gently, if the app is slow)
-            scheduleScan(incomplete ? Math.min(300, Math.max(40, (now - rd.start) / 2)) : 0);
-        } else if (curtainUp) {
-            scheduleScan(100);   // something unread is blanked out: read it soon
+            scheduleScan(incomplete ? 40 : 0);   // keep reading while it scrolls / until clean
         } else if (!covers.isEmpty()) {
             main.postDelayed(recheckRunnable, RECHECK_MS);
         }
@@ -1346,11 +991,8 @@ public class ShieldService extends AccessibilityService {
                 // unsure the tracking is right now, so a small error never shows text.
                 for (Tracker t : trackers) {
                     if (!t.busy(now) || !movesWith(c.clip, t.c)) continue;
-                    // Capped: right after a big correction the error is briefly large, and
-                    // stretching by all of it flashed covers the height of the whole list.
-                    float lead = Math.max(-MAX_LEAD_PX, Math.min(MAX_LEAD_PX,
-                            t.ty.velocity() * LEAD_MS));
-                    float unsure = Math.min(Math.abs(t.ty.error(now)), MAX_UNSURE_PX) + 6;
+                    float lead = t.ty.velocity() * LEAD_MS;
+                    float unsure = Math.abs(t.ty.error(now)) + 6;
                     if (lead < 0) top += lead; else bottom += lead;
                     top -= unsure;
                     bottom += unsure;
