@@ -8,6 +8,17 @@ PKG=dev.mwkov.spoilershield
 timeout 120 adb install -r app/build/outputs/apk/release/app-release.apk
 timeout 120 adb install -r testapp/build/outputs/apk/debug/testapp-debug.apk
 adb root; sleep 4; timeout 60 adb wait-for-device
+# The emulator sometimes shows "X isn't responding" right after booting; it would sit on top
+# of the test screen and swallow the swipes. Hide such dialogs and dismiss any open one.
+adb shell settings put global hide_error_dialogs 1
+adb shell settings put global anr_show_background 0
+clear_dialogs() {
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null
+  if adb shell dumpsys window | grep -q "Application Not Responding\|isn't responding"; then
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+  fi
+}
+clear_dialogs
 
 # Settings: shield on, cover only the matching text (so cover vs text can be compared
 # exactly), debug numbers + test trace on.
@@ -55,8 +66,11 @@ gestures() {
 
 run() {   # name activity
   mark "screen $1"
+  clear_dialogs
   adb shell am start -W -n dev.mwkov.shieldtest/.$2
   sleep 6                                  # first read of the screen
+  clear_dialogs
+  adb shell dumpsys window | grep -m3 "mCurrentFocus\|isn't responding" > "$OUT/$1-focus.txt"
   adb shell screenrecord --bit-rate 8000000 --time-limit 120 /sdcard/$1.mp4 &
   REC=$!
   sleep 1
