@@ -10,8 +10,8 @@ android {
         applicationId 'dev.mwkov.spoilershield'
         minSdk 26
         targetSdk 35
-        versionCode 10
-        versionName '3.2'
+        versionCode 11
+        versionName '4.0'
         ndk {
             abiFilters 'arm64-v8a'
         }
@@ -44,4 +44,6 @@ android {
 dependencies {
     // On-device text recognition, model bundled in the app (works offline)
     implementation 'com.google.mlkit:text-recognition:16.0.1'
+
+    testImplementation 'junit:junit:4.13.2'
 }

@@ -34,6 +34,7 @@ public class CaptureService extends Service {
     private static final String CHANNEL = "fast_mode";
 
     static volatile boolean running;
+    private static final int CAPTURE_MAX_W = 720;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private MediaProjection projection;
@@ -101,6 +102,12 @@ public class CaptureService extends Service {
             w = dm.widthPixels;
             h = dm.heightPixels;
         }
+        // Capture at no more than 720 px wide. Tracking and text reading don't need more,
+        // and every frame is processed on the main thread: full size cost ~2.2x as much.
+        if (w > CAPTURE_MAX_W) {
+            h = Math.round(h * (CAPTURE_MAX_W / (float) w));
+            w = CAPTURE_MAX_W;
+        }
     }
 
     private ImageReader newReader() {
@@ -130,7 +137,8 @@ public class CaptureService extends Service {
     private void createDisplay() {
         readSize();
         reader = newReader();
-        int dpi = getResources().getDisplayMetrics().densityDpi;
+        android.util.DisplayMetrics real = getResources().getDisplayMetrics();
+        int dpi = Math.max(120, Math.round(real.densityDpi * (w / (float) real.widthPixels)));
         display = projection.createVirtualDisplay("spoiler-shield", w, h, dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.getSurface(), null, main);
     }

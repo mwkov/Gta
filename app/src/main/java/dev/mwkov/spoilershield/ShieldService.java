@@ -46,7 +46,17 @@ public class ShieldService extends AccessibilityService {
 
     private static final long THROTTLE_MS = 30;      // min gap between reads while things change
     private static final long RECHECK_MS = 500;      // re-verify while covers are showing
-    private static final long STOP_MS = 120;         // no scroll event for this long = stopped
+    // Scroll tracking. Android sends scroll events at most every 100 ms (batched), so any
+    // event-only timing must stay well above that. See TrackMath for the prediction model.
+    private static final long POLL_MS = 16;          // re-read the anchor item ~every frame
+    private static final long POLL_IDLE_MS = 50;     // ...and every 50 ms while still, to
+                                                     //    catch the start of a scroll early
+    private static final long POLL_LIVE_MS = 150;    // re-reads count as live this long
+    private static final long STOP_POLL_MS = 90;     // re-reads show no movement this long
+    private static final long STOP_EVENT_MS = 220;   // no event for > 2 batches = stopped
+    private static final float LEAD_EVENT_MS = 45f;  // stretch covers by speed x this
+    private static final long SCAN_GAP_MOVING_MS = 150;   // full reads while scrolling: spaced
+    private static final long REGEX_BUDGET_MS = 20;       // per text, so a bad pattern can't hang
     private static final int MAX_DEPTH = 150;
     private static final int MAX_CLIMB = 10;
     private static final float ITEM_MAX_HEIGHT = 0.3f;  // a covered "item" is at most 40% of screen
@@ -102,6 +112,12 @@ public class ShieldService extends AccessibilityService {
     private boolean armed;          // a spoiler was seen on this screen -> curtain allowed
     private boolean framesRunning;
     private long lastFrameNanos;
+    private HandlerThread pollThread;
+    private Handler pollHandler;
+    private volatile long lastScanStart;
+    private volatile int regexTimeouts;
+    private String dbgPoll = "poll: -";
+    private final Runnable idlePoll = this::idlePollTick;
 
     /** One covered spot. Position is a float so sub-pixel glide adds up correctly. */
     private static final class Cover {
@@ -114,6 +130,10 @@ public class ShieldService extends AccessibilityService {
         Bitmap patch;      // blurred picture of what's underneath (fast mode), or null
         float pl, pt, pr, pb;   // where the picture sits, relative to r's top-left corner
         int avg;           // its average colour
+        // The matched item, so its live position can be re-read while the list scrolls.
+        // After the cover is published only the poll thread touches it (synchronized).
+        AccessibilityNodeInfo node;
+        float offX, offY;  // the item's own top-left, relative to r's top-left
 
         Cover(RectF r, Rect clip, long seq) {
             this.r = r;
@@ -148,18 +168,24 @@ public class ShieldService extends AccessibilityService {
         }
     }
 
-    /** Per scrolling area: velocity estimate and how far content moved since the last read. */
+    /** One scrolling area (list, page, carousel) and the tracking of its content. */
     private static final class Tracker {
         final Rect c;
-        float vx, vy;          // content velocity, px per ms (negative y = moving up)
-        float predX, predY;    // glide applied since the last real scroll event
+        final TrackMath tx = new TrackMath(), ty = new TrackMath();
         float unX, unY;        // content movement not yet covered by a completed read
-        long lastEvent;
+        long lastEventArr, lastEventSent, lastPollLive, lastMovePoll, lastSeen;
         int lastSX = -1, lastSY = -1;
-        boolean active;
+        boolean moving;        // content is moving (from events or re-reads)
+        boolean pollBusy;
+        Cover anchor;          // the covered item whose position is re-read
+        float lastPollX = Float.NaN, lastPollY = Float.NaN;
 
         Tracker(Rect c) {
             this.c = c;
+        }
+
+        boolean busy(long now) {
+            return moving || tx.busy(now) || ty.busy(now);
         }
     }
 
@@ -185,6 +211,10 @@ public class ShieldService extends AccessibilityService {
         scanThread = new HandlerThread("shield-scan");
         scanThread.start();
         scanHandler = new Handler(scanThread.getLooper());
+        // Separate thread so a slow full read never delays the position re-reads.
+        pollThread = new HandlerThread("shield-poll");
+        pollThread.start();
+        pollHandler = new Handler(pollThread.getLooper());
         addOverlay();
         scheduleScan(0);
     }
@@ -299,35 +329,31 @@ public class ShieldService extends AccessibilityService {
             if (!scrollArea.intersect(screenMain)) scrollArea = null;
         }
         long now = SystemClock.uptimeMillis();
+        // When the app sent it (same clock across apps); removes delivery jitter from speeds.
+        long at = event.getEventTime();
+        if (at <= 0 || at > now) at = now;
         if (Math.abs(dy) > container.height() * 3 || Math.abs(dx) > container.width() * 3) {
             // A jump (e.g. "scroll to top"), not a scroll: drop tracking, let the read fix it.
-            t.active = false;
-            t.vx = t.vy = t.predX = t.predY = 0;
-            t.lastEvent = now;
+            t.tx.stop(now);
+            t.ty.stop(now);
+            t.moving = false;
+            t.lastEventSent = at;
             return;
         }
-
-        float dt = now - t.lastEvent;
-        if (dt < 16 || dt > 300) dt = 100;   // first event of a gesture: assume the usual gap
-        float mx = -dx, my = -dy;            // content moves opposite to the scroll offset
-
-        // We already glided by pred; apply only the difference to land on the true position.
-        applyMove(t, mx - t.predX, my - t.predY);
-        t.predX = t.predY = 0;
-
-        float nvx = mx / dt, nvy = my / dt;
-        if (t.active) {
-            t.vx = 0.5f * t.vx + 0.5f * nvx;
-            t.vy = 0.5f * t.vy + 0.5f * nvy;
-        } else {
-            t.vx = nvx;
-            t.vy = nvy;
+        // While re-reads are live they are exact and fresher; the event then only says
+        // "still moving". Adding its distance too would count the same movement twice.
+        if (eventsDrive() && now - t.lastPollLive > POLL_LIVE_MS) {
+            float window = at - t.lastEventSent;
+            if (window < 16 || window > 300) window = 100;   // first batch of a gesture
+            t.tx.addDelta(-dx, at, window);
+            t.ty.addDelta(-dy, at, window);
         }
-        t.lastEvent = now;
-        t.active = true;
+        t.lastEventSent = at;
+        t.lastEventArr = now;
+        t.lastSeen = now;
+        t.moving = true;
         scrolling = true;
         startFrames();
-        render();
     }
 
     private Tracker trackerFor(Rect container) {
@@ -341,6 +367,7 @@ public class ShieldService extends AccessibilityService {
             }
         }
         Tracker t = new Tracker(new Rect(container));
+        t.lastSeen = SystemClock.uptimeMillis();
         trackers.add(t);
         return t;
     }
@@ -390,29 +417,33 @@ public class ShieldService extends AccessibilityService {
     private void startFrames() {
         if (framesRunning) return;
         framesRunning = true;
+        main.removeCallbacks(idlePoll);
         lastFrameNanos = 0;
         Choreographer.getInstance().postFrameCallback(frameCallback);
     }
 
     private void onFrame(long frameNanos) {
-        float dt = lastFrameNanos == 0 ? 0 : (frameNanos - lastFrameNanos) / 1_000_000f;
-        if (dt > 34) dt = 34;
         lastFrameNanos = frameNanos;
         long now = SystemClock.uptimeMillis();
         boolean any = false;
+        boolean drive = eventsDrive();
         for (Tracker t : trackers) {
-            if (!t.active) continue;
-            if (now - t.lastEvent > STOP_MS) {
-                // Scrolling stopped: freeze, and get a fresh read to settle exact positions.
-                t.active = false;
-                t.vx = t.vy = 0;
-                scheduleScan(0);
-                continue;
+            if (t.moving) {
+                boolean pollsStill = now - t.lastPollLive < 100 && now - t.lastMovePoll > STOP_POLL_MS;
+                boolean eventsStill = now - t.lastEventArr > STOP_EVENT_MS
+                        && now - t.lastPollLive > 100;
+                if (pollsStill || eventsStill) {
+                    t.moving = false;
+                    t.tx.stop(now);
+                    t.ty.stop(now);
+                    scheduleScan(0);   // settled: a fresh read confirms exact positions
+                }
             }
-            float sx = t.vx * dt, sy = t.vy * dt;
-            t.predX += sx;
-            t.predY += sy;
-            applyMove(t, sx, sy);
+            if (!drive) continue;      // fast mode: the screen image moves the covers
+            if (t.moving) requestPoll(t, now, POLL_MS);
+            if (!t.busy(now)) continue;
+            float mx = t.tx.frame(now), my = t.ty.frame(now);
+            applyMove(t, mx, my);
             any = true;
         }
         render();
@@ -420,16 +451,147 @@ public class ShieldService extends AccessibilityService {
             Choreographer.getInstance().postFrameCallback(frameCallback);
         } else {
             framesRunning = false;
-            scrolling = false;
-            forceDeep = true;
-            scheduleScan(0);   // idle again: go read the whole page
+            if (scrolling) {
+                scrolling = false;
+                forceDeep = true;
+                scheduleScan(0);   // a scroll just ended: go read the whole page
+            }
+            scheduleIdlePoll();
         }
+    }
+
+    // ------------------------------------------------------------------ position re-reads
+    //
+    // Scroll events only arrive every 100 ms. Re-reading ONE covered item per list gives
+    // its real position about once per frame instead. It is one small request to the app,
+    // and only while that list has covers.
+
+    /** The covered item to re-read in this list: the one nearest the middle. */
+    private Cover pickAnchor(Tracker t) {
+        if (t.anchor != null && covers.contains(t.anchor)) return t.anchor;
+        Cover best = null;
+        float bestD = Float.MAX_VALUE;
+        for (Cover c : covers) {
+            if (c.ocr || c.node == null || !eventMoves(c, t.c)) continue;
+            if (c.r.bottom < t.c.top || c.r.top > t.c.bottom) continue;
+            float d = Math.abs(c.r.centerY() - t.c.exactCenterY());
+            if (d < bestD) {
+                bestD = d;
+                best = c;
+            }
+        }
+        if (best != t.anchor) {
+            t.anchor = best;
+            t.lastPollX = t.lastPollY = Float.NaN;
+        }
+        return best;
+    }
+
+    private void requestPoll(Tracker t, long now, long minGap) {
+        if (t.pollBusy || pollHandler == null || !eventsDrive()) return;
+        if (now - t.lastPollLive < minGap && t.lastPollLive != 0) return;
+        final Cover a = pickAnchor(t);
+        if (a == null) return;
+        t.pollBusy = true;
+        final float shownX = t.tx.shown(), shownY = t.ty.shown();
+        final float drawnX = a.r.left + a.offX, drawnY = a.r.top + a.offY;
+        final Pattern p = pattern;
+        pollHandler.post(() -> {
+            long t0 = SystemClock.uptimeMillis();
+            boolean ok;
+            Rect b = new Rect();
+            boolean still = false;
+            synchronized (a.node) {
+                try {
+                    ok = a.node.refresh();
+                    if (ok) {
+                        a.node.getBoundsInScreen(b);
+                        // RecyclerView reuses rows: if the text no longer matches, this row
+                        // now shows something else and its position means nothing.
+                        still = a.node.isVisibleToUser() && p != null
+                                && (matches(p, a.node.getText())
+                                || matches(p, a.node.getContentDescription()));
+                    }
+                } catch (RuntimeException e) {
+                    ok = false;
+                }
+            }
+            long t1 = SystemClock.uptimeMillis();
+            final boolean fine = ok && still && !b.isEmpty();
+            main.post(() -> onPoll(t, a, fine, b, t0, t1, shownX, shownY, drawnX, drawnY));
+        });
+    }
+
+    private void onPoll(Tracker t, Cover a, boolean ok, Rect b, long t0, long t1,
+            float shownX, float shownY, float drawnX, float drawnY) {
+        if (!trackers.contains(t)) return;
+        t.pollBusy = false;
+        long now = SystemClock.uptimeMillis();
+        if (debug) dbgPoll = "poll: " + (t1 - t0) + "ms " + (ok ? "ok" : "lost anchor")
+                + (t.moving ? " moving" : " still");
+        if (t.anchor != a) return;
+        if (!ok) {
+            t.anchor = null;
+            return;
+        }
+        // Where the covers should be = where they were when we asked, plus how far the
+        // item really was from its cover. (Movement between asking and answering cancels.)
+        float truthX = shownX + (b.left - drawnX), truthY = shownY + (b.top - drawnY);
+        // The position is from the app's last drawn frame, a few ms before it answered.
+        long at = (t0 + t1) / 2 - 6;
+        float jump = Math.abs(truthY - t.ty.target(at)) + Math.abs(truthX - t.tx.target(at));
+        float plausible = 200 + (Math.abs(t.ty.velocity()) + Math.abs(t.tx.velocity())) * 120;
+        if (jump > plausible) {   // the row was reused for other content: pick another
+            t.anchor = null;
+            return;
+        }
+        boolean moved = !Float.isNaN(t.lastPollY)
+                && (Math.abs(b.top - t.lastPollY) >= 1 || Math.abs(b.left - t.lastPollX) >= 1);
+        t.lastPollX = b.left;
+        t.lastPollY = b.top;
+        t.lastPollLive = now;
+        t.lastSeen = now;
+        t.tx.setPosition(truthX, at);
+        t.ty.setPosition(truthY, at);
+        if (moved) {
+            t.lastMovePoll = now;
+            if (!t.moving) {
+                t.moving = true;      // caught the start of a scroll before Android said so
+                scrolling = true;
+            }
+        }
+        if (t.busy(now)) startFrames();   // still and settled: nothing to do this time
+    }
+
+    /** While still, re-read each list's anchor every 50 ms to notice a scroll starting. */
+    private void scheduleIdlePoll() {
+        main.removeCallbacks(idlePoll);
+        if (!enabled || !eventsDrive()) return;
+        for (Tracker t : trackers) {
+            if (pickAnchor(t) != null) {
+                main.postDelayed(idlePoll, POLL_IDLE_MS);
+                return;
+            }
+        }
+    }
+
+    private void idlePollTick() {
+        if (framesRunning) return;   // the frame loop does the polling while it runs
+        long now = SystemClock.uptimeMillis();
+        for (Tracker t : trackers) requestPoll(t, now, POLL_IDLE_MS - 5);
+        scheduleIdlePoll();
     }
 
     private void scheduleScan(long delay) {
         if (scanHandler == null) return;
         if (!scanPending.compareAndSet(false, true)) return;
-        scanHandler.postDelayed(scanRunnable, delay);
+        // Every read is answered on the other app's main thread. While it scrolls, reading
+        // back-to-back steals time from its drawing (and from our position re-reads).
+        if (scrolling) {
+            long since = SystemClock.uptimeMillis() - lastScanStart;
+            delay = Math.max(delay, SCAN_GAP_MOVING_MS - since);
+        }
+        scanHandler.postDelayed(scanRunnable, Math.max(0, delay));
     }
 
     // ------------------------------------------------------------------ reading (scan thread)
@@ -438,6 +600,7 @@ public class ShieldService extends AccessibilityService {
         scanPending.set(false);
         final long startSeq = shiftSeq.get();
         scanStartMs = SystemClock.uptimeMillis();
+        lastScanStart = scanStartMs;
         scanNodes = 0;
         scanErrors = 0;
         scanStartSeq = startSeq;
@@ -583,8 +746,14 @@ public class ShieldService extends AccessibilityService {
         }
     }
 
-    private static boolean matches(Pattern p, CharSequence s) {
-        return s != null && s.length() > 0 && p.matcher(s).find();
+    private boolean matches(Pattern p, CharSequence s) {
+        if (s == null || s.length() == 0) return false;
+        try {
+            return p.matcher(new TimedText(s, REGEX_BUDGET_MS)).find();
+        } catch (TimedText.TimeUp e) {
+            regexTimeouts++;
+            return false;
+        }
     }
 
     /**
@@ -624,19 +793,27 @@ public class ShieldService extends AccessibilityService {
         }
         // The positions above may be a batch old. While scrolling, re-read just this one node
         // and slide the whole cover by however far it has moved since (one request per hit).
+        int nodeLeft = oldLeft, nodeTop = oldTop;
         if (scrolling) {
             long now = shiftSeq.get();
             if (node.refresh()) {
                 node.getBoundsInScreen(tmp);
                 if (!tmp.isEmpty()) {
                     r.offset(tmp.left - oldLeft, tmp.top - oldTop);
+                    nodeLeft = tmp.left;
+                    nodeTop = tmp.top;
                     seq = now;
                 }
             } else {
                 scanErrors++;
             }
         }
-        return new Cover(new RectF(r), new Rect(container), seq);
+        Cover c = new Cover(new RectF(r), new Rect(container), seq);
+        c.node = node;
+        // The item's own corner relative to the cover (the cover may include its picture).
+        c.offX = nodeLeft - r.left;
+        c.offY = nodeTop - r.top;
+        return c;
     }
 
     private void readScreenBounds(Rect out) {
@@ -823,6 +1000,11 @@ public class ShieldService extends AccessibilityService {
         captureOn = false;
         est = null;
         pxV = 0;
+        // Scroll tracking takes over again from where the covers are now.
+        for (Tracker t : trackers) {
+            t.tx.reset();
+            t.ty.reset();
+        }
         lastImgTsNs = 0;
         regTop = regBot = -1;
         dbgPx = "fast mode: off";
@@ -1219,8 +1401,31 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
+        // A read during a scroll measured positions at a slightly different moment than the
+        // tracked covers. For items already covered, keep the tracked cover (no jitter) unless
+        // the read shows it is clearly off.
+        boolean anyMoving = false;
+        for (Tracker t : trackers) if (t.moving) anyMoving = true;
+        if (anyMoving) {
+            for (int i = 0; i < found.size(); i++) {
+                Cover f = found.get(i);
+                if (f.node == null) continue;
+                for (Cover old : covers) {
+                    if (old.node == null || !old.node.equals(f.node)) continue;
+                    if (Math.abs(old.r.top - f.r.top) <= 48 && Math.abs(old.r.left - f.r.left) <= 48
+                            && old.r.width() >= f.r.width() * 0.8f) {
+                        found.set(i, old);
+                    }
+                    break;
+                }
+            }
+        }
         found.addAll(keep);   // already at current positions
         covers = found;
+        // Every list that has covers gets a tracker, so its re-reads can start right away.
+        for (Cover c : covers) {
+            if (c.node != null && c.clip != null && !c.clip.isEmpty()) trackerFor(c.clip);
+        }
         if (!found.isEmpty()) armed = true;
         if (!enabled) armed = false;
 
@@ -1228,9 +1433,10 @@ public class ShieldService extends AccessibilityService {
         boolean anyActive = false;
         for (Iterator<Tracker> it = trackers.iterator(); it.hasNext(); ) {
             Tracker t = it.next();
-            if (t.active) {
+            if (t.moving) {
                 anyActive = true;
-            } else if (now - t.lastEvent > 3000 && t.unX == 0 && t.unY == 0) {
+            } else if (now - t.lastSeen > 3000 && pickAnchor(t) == null
+                    && t.unX == 0 && t.unY == 0) {
                 it.remove();
             }
         }
@@ -1243,9 +1449,11 @@ public class ShieldService extends AccessibilityService {
         } else if (!covers.isEmpty()) {
             main.postDelayed(recheckRunnable, RECHECK_MS);
         }
+        if (!framesRunning) scheduleIdlePoll();
     }
 
     private void resetTracking() {
+        main.removeCallbacks(idlePoll);
         markAllDirty();
         trackers.clear();
         shifts.clear();
@@ -1265,6 +1473,7 @@ public class ShieldService extends AccessibilityService {
             // The overlay reaches the display a couple of frames after the content moved:
             // stretch covers a little in the direction of travel so nothing peeks out.
             float lead = px ? pxV * LEAD_MS : 0;
+            long nowMs = SystemClock.uptimeMillis();
             for (Cover c : covers) {
                 float top = c.r.top, bottom = c.r.bottom;
                 boolean moving = px && regTop >= 0 && inBand(c, regT, regB);
@@ -1272,6 +1481,19 @@ public class ShieldService extends AccessibilityService {
                     if (lead < 0) top += lead; else bottom += lead;
                     top -= 4;
                     bottom += 4;
+                }
+                if (!px) {
+                    // Normal mode: stretch towards where the content is heading, by its speed
+                    // and by how unsure the tracking currently is, so nothing peeks out.
+                    for (Tracker t : trackers) {
+                        if (!t.busy(nowMs) || !eventMoves(c, t.c)) continue;
+                        float v = t.ty.velocity() * LEAD_EVENT_MS;
+                        float unsure = Math.abs(t.ty.error(nowMs)) + 6;
+                        if (v < 0) top += v; else bottom += v;
+                        top -= unsure;
+                        bottom += unsure;
+                        break;
+                    }
                 }
                 Rect r = new Rect(Math.round(c.r.left), Math.round(top),
                         Math.round(c.r.right), Math.round(bottom));
@@ -1291,10 +1513,11 @@ public class ShieldService extends AccessibilityService {
                     if (wholePageRead(t.c)) continue;   // everything coming is already known
                     // Strip of content that entered since the last completed read (+ a little
                     // lead for the frames it takes this overlay to reach the display).
-                    float h = Math.abs(t.unY) + Math.abs(t.vy) * 30f;
+                    float vy = t.ty.velocity();
+                    float h = Math.abs(t.unY) + Math.abs(vy) * LEAD_EVENT_MS;
                     if (h < 8) continue;
                     int hh = (int) Math.min(h, t.c.height());
-                    boolean fromBottom = t.unY < 0 || (t.unY == 0 && t.vy < 0);
+                    boolean fromBottom = t.unY < 0 || (t.unY == 0 && vy < 0);
                     plain.add(fromBottom
                             ? new Rect(t.c.left, t.c.bottom - hh, t.c.right, t.c.bottom)
                             : new Rect(t.c.left, t.c.top, t.c.right, t.c.top + hh));
@@ -1306,14 +1529,15 @@ public class ShieldService extends AccessibilityService {
             int active = 0;
             float v = 0;
             for (Tracker t : trackers) {
-                if (t.active) {
+                if (t.moving) {
                     active++;
-                    v = t.vy;
+                    v = t.ty.velocity();
                 }
             }
             overlay.setDebug(dbgScan + "\n" + dbgScroll + "\ntracking " + active + "/"
                     + trackers.size() + " v=" + Math.round(v * 1000) + "px/s armed="
-                    + (armed ? "Y" : "N") + "\n" + dbgPx + "\n" + dbgOcr);
+                    + (armed ? "Y" : "N") + (regexTimeouts > 0 ? " regex-timeouts=" + regexTimeouts : "")
+                    + "\n" + dbgPoll + "\n" + dbgPx + "\n" + dbgOcr);
         } else {
             overlay.setDebug(null);
         }
@@ -1341,6 +1565,7 @@ public class ShieldService extends AccessibilityService {
         main.removeCallbacksAndMessages(null);
         if (framesRunning) Choreographer.getInstance().removeFrameCallback(frameCallback);
         if (scanThread != null) scanThread.quitSafely();
+        if (pollThread != null) pollThread.quitSafely();
         if (prefs != null) prefs.unregisterOnSharedPreferenceChangeListener(prefListener);
         if (overlay != null && wm != null) {
             try {
