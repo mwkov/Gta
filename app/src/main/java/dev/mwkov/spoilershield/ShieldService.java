@@ -65,6 +65,7 @@ public class ShieldService extends AccessibilityService {
     private volatile boolean coverCard;
     private volatile boolean edgeCurtain;
     private volatile boolean debug;
+    private volatile boolean blur;
     private volatile Set<String> ignored = new HashSet<>();
 
     // Background read state
@@ -110,6 +111,9 @@ public class ShieldService extends AccessibilityService {
         boolean ocr;       // found by reading the screen image (not the app's text)
         boolean inRegion;  // ocr cover that lives inside the scrolling part of the screen
         long stickyUntil;  // ocr cover: don't re-check before this time
+        Bitmap patch;      // blurred picture of what's underneath (fast mode), or null
+        float pl, pt, pr, pb;   // where the picture sits, relative to r's top-left corner
+        int avg;           // its average colour
 
         Cover(RectF r, Rect clip, long seq) {
             this.r = r;
@@ -190,6 +194,7 @@ public class ShieldService extends AccessibilityService {
         coverCard = Prefs.coverCard(this);
         edgeCurtain = Prefs.scrollBlackout(this);
         debug = Prefs.debug(this);
+        blur = Prefs.blur(this);
         pattern = Prefs.compile(Prefs.pattern(this));
         ignored = Prefs.ignoredApps(this);
     }
@@ -902,6 +907,80 @@ public class ShieldService extends AccessibilityService {
         }
     }
 
+    /**
+     * Blur style: take the pixels under a cover from the latest frame and shrink them to a
+     * few dozen dots; drawn back at full size they are a smooth blur with nothing readable.
+     */
+    private void grabPatch(Cover c) {
+        if (!blur || !captureOn || heldImage == null || est == null || screenMain.isEmpty()) return;
+        try {
+            RectF v = new RectF(c.r);
+            if (!v.intersect(0, 0, screenMain.width(), screenMain.height())) return;
+            int w = est.w, h = est.h, stride = est.stride;
+            int fl = Math.max(0, (int) (v.left / fscale)), ft = Math.max(0, (int) (v.top / fscale));
+            int fr = Math.min(w, (int) Math.ceil(v.right / fscale));
+            int fb = Math.min(h, (int) Math.ceil(v.bottom / fscale));
+            if (fr - fl < 8 || fb - ft < 8) return;
+            // Dot size: ~22px on a 1080-wide screen, coarser for big covers so that large
+            // lettering (logos in thumbnails) dissolves too.
+            int cell = Math.max(Math.max(10, w / 48), Math.max(fr - fl, fb - ft) / 20);
+            int sw = Math.max(2, (fr - fl) / cell), sh = Math.max(2, (fb - ft) / cell);
+            float cw = (fr - fl) / (float) sw, ch = (fb - ft) / (float) sh;
+            ByteBuffer buf = heldImage.getPlanes()[0].getBuffer();
+            int[] rr = new int[sw * sh], gg = new int[sw * sh], bb = new int[sw * sh];
+            for (int j = 0; j < sh; j++) {
+                for (int i = 0; i < sw; i++) {
+                    int r = 0, g = 0, b = 0;
+                    for (int k = 0; k < 4; k++) {     // 4 samples per dot
+                        int x = Math.min(w - 1, fl + (int) ((i + (k % 2 == 0 ? 0.25f : 0.75f)) * cw));
+                        int y = Math.min(h - 1, ft + (int) ((j + (k < 2 ? 0.25f : 0.75f)) * ch));
+                        int o = y * stride + x * 4;
+                        r += buf.get(o) & 0xFF;
+                        g += buf.get(o + 1) & 0xFF;
+                        b += buf.get(o + 2) & 0xFF;
+                    }
+                    rr[j * sw + i] = r / 4;
+                    gg[j * sw + i] = g / 4;
+                    bb[j * sw + i] = b / 4;
+                }
+            }
+            // Soften: each dot becomes the average of itself and its neighbours.
+            int[] out = new int[sw * sh];
+            long ar = 0, ag = 0, ab = 0;
+            for (int j = 0; j < sh; j++) {
+                for (int i = 0; i < sw; i++) {
+                    int r = 0, g = 0, b = 0, n = 0;
+                    for (int dj = -1; dj <= 1; dj++) {
+                        for (int di = -1; di <= 1; di++) {
+                            int x = i + di, y = j + dj;
+                            if (x < 0 || y < 0 || x >= sw || y >= sh) continue;
+                            r += rr[y * sw + x];
+                            g += gg[y * sw + x];
+                            b += bb[y * sw + x];
+                            n++;
+                        }
+                    }
+                    r /= n;
+                    g /= n;
+                    b /= n;
+                    ar += r;
+                    ag += g;
+                    ab += b;
+                    out[j * sw + i] = 0xFF000000 | (r << 16) | (g << 8) | b;
+                }
+            }
+            int n = sw * sh;
+            c.avg = 0xFF000000 | ((int) (ar / n) << 16) | ((int) (ag / n) << 8) | (int) (ab / n);
+            c.patch = Bitmap.createBitmap(out, sw, sh, Bitmap.Config.ARGB_8888);
+            c.pl = v.left - c.r.left;
+            c.pt = v.top - c.r.top;
+            c.pr = v.right - c.r.left;
+            c.pb = v.bottom - c.r.top;
+        } catch (RuntimeException ignored) {
+            // Frame went away mid-read: this cover stays a plain box.
+        }
+    }
+
     /** Start reading the not-yet-read part of the latest frame, if the reader is free. */
     private void kickOcr() {
         if (ocrBusy || heldImage == null || dirty == null || est == null) return;
@@ -1028,7 +1107,10 @@ public class ShieldService extends AccessibilityService {
             for (Cover old : covers) {
                 if (!RectF.intersects(old.r, c.r)) continue;
                 if (old.ocr) {
-                    old.r.union(c.r);
+                    if (!old.r.contains(c.r)) {
+                        old.r.union(c.r);
+                        grabPatch(old);
+                    }
                     merged = true;
                     break;
                 }
@@ -1047,6 +1129,7 @@ public class ShieldService extends AccessibilityService {
                     break;
                 }
             }
+            grabPatch(c);
             covers.add(c);
             armed = true;
         }
@@ -1109,6 +1192,33 @@ public class ShieldService extends AccessibilityService {
             }
         }
 
+        if (blur && captureOn) {
+            for (Cover f : found) {
+                Cover from = null;
+                for (Cover old : covers) {
+                    if (old.ocr || old.patch == null || !RectF.intersects(old.r, f.r)) continue;
+                    float iw = Math.min(old.r.right, f.r.right) - Math.max(old.r.left, f.r.left);
+                    float ih = Math.min(old.r.bottom, f.r.bottom) - Math.max(old.r.top, f.r.top);
+                    if (iw * ih >= 0.6f * f.r.width() * f.r.height()) {
+                        from = old;
+                        break;
+                    }
+                }
+                if (from != null) {
+                    // Same spot as before: keep its picture (re-grabbing would only capture
+                    // our own blur).
+                    f.patch = from.patch;
+                    f.avg = from.avg;
+                    float ox = from.r.left - f.r.left, oy = from.r.top - f.r.top;
+                    f.pl = from.pl + ox;
+                    f.pr = from.pr + ox;
+                    f.pt = from.pt + oy;
+                    f.pb = from.pb + oy;
+                } else {
+                    grabPatch(f);
+                }
+            }
+        }
         found.addAll(keep);   // already at current positions
         covers = found;
         if (!found.isEmpty()) armed = true;
@@ -1147,6 +1257,7 @@ public class ShieldService extends AccessibilityService {
     private void render() {
         if (overlay == null) return;
         List<Rect> labeled = new ArrayList<>(covers.size());
+        List<OverlayView.Item> items = new ArrayList<>(covers.size());
         List<Rect> plain = new ArrayList<>(2);
         if (enabled) {
             boolean px = !eventsDrive();
@@ -1169,6 +1280,10 @@ public class ShieldService extends AccessibilityService {
                         && !r.intersect(0, Math.round(regT), 1 << 20, Math.round(regB))) continue;
                 if (!screenMain.isEmpty() && !r.intersect(screenMain)) continue;
                 labeled.add(r);
+                boolean useBlur = blur && px && c.patch != null;
+                items.add(new OverlayView.Item(r, useBlur ? c.patch : null,
+                        useBlur ? new RectF(c.r.left + c.pl, c.r.top + c.pt,
+                                c.r.left + c.pr, c.r.top + c.pb) : null, c.avg));
             }
             lastDrawn = labeled;
             if (edgeCurtain && armed && !px) {
@@ -1186,7 +1301,7 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
-        overlay.setFrame(labeled, plain);
+        overlay.setFrame(items, plain);
         if (debug && enabled) {
             int active = 0;
             float v = 0;

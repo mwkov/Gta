@@ -133,6 +133,12 @@ public class MainActivity extends Activity {
                 + "covered until it has been checked (a fraction of a second). Faster scroll = "
                 + "taller strip.", 12, MUTED));
 
+        Switch blurSw = toggle("Blur instead of boxes", Prefs.blur(this));
+        blurSw.setOnCheckedChangeListener((b, on) ->
+                Prefs.get(this).edit().putBoolean(Prefs.KEY_BLUR, on).apply());
+        switches.addView(blurSw);
+        switches.addView(text("Fast mode only (it needs the screen image). In normal mode "
+                + "covers are solid boxes.", 12, MUTED));
         Switch dbg = toggle("Show debug numbers", Prefs.debug(this));
         dbg.setOnCheckedChangeListener((b, on) ->
                 Prefs.get(this).edit().putBoolean(Prefs.KEY_DEBUG, on).apply());
