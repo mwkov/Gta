@@ -300,3 +300,25 @@ web        window 3 null                                   reads   89, median   
 web        window 1 Shield Test                            reads   56, median   29.0 ms, max   7199 ms
 web        window 1 Home                                   reads    3, median     25 ms, max     88 ms
 
+=== run 17 baseline commit 1719ce1 2026-11-11T18:38:04Z
+screen   gesture         frames  exposed%   worst px   cover err    err p95   longest ms
+list     slow_drag          175     27.4%        60       13.3       77.5          393
+list     medium             164     15.9%        60        0.7        0.0          625
+list     fling_down         144     27.1%        60        8.0       40.0          682
+list     fling_up           147     36.7%        60        0.3        0.0         1030
+list     drag_hold          301     24.9%        60        8.5       43.5          449
+list     repeat_flings      252     30.6%        60        1.7        7.5          957
+web      slow_drag          163     12.9%        56       67.0      136.0          246
+web      medium               8     37.5%        48       80.9      127.0            7
+web      fling_down         141      5.7%        56       60.0       60.0          240
+web      fling_up           151      4.0%        56       58.6       59.5           51
+web      drag_hold          309      4.5%        56       64.1       96.0          117
+web      repeat_flings      230      3.5%        56       60.3       59.5          154
+
+list     TOTAL: GTA text visible on 27.0% of frames, worst 60 px tall, avg cover offset 6.2 px, longest exposure 1030 ms
+web      TOTAL: GTA text visible on 6.0% of frames, worst 56 px tall, avg cover offset 63.3 px, longest exposure 246 ms
+list     re-reads: 262, median 34.5 ms, p90 95 ms | full reads: 84, median 38.0 ms, max 1692 ms | finger-downs seen: 13
+list     test app frames: median 17 ms apart, p90 40 ms (a phone: 8-17 ms)
+web      re-reads: 298, median 11.0 ms, p90 83 ms | full reads: 67, median 8 ms, max 4797 ms | finger-downs seen: 13
+web      test app frames: median 17 ms apart, p90 48 ms (a phone: 8-17 ms)
+

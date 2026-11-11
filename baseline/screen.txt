@@ -1,0 +1,2 @@
+Physical size: 540x1200
+Physical density: 210
