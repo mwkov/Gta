@@ -143,6 +143,7 @@ public class ShieldService extends AccessibilityService {
     private boolean armed;
     private boolean framesRunning;
     private String lastPkg = "";
+    private String lastScreen = "";
     private int fingerDowns;
     private String dbgScan = "scan: -";
     private String dbgScroll = "scroll: no events yet";
@@ -389,7 +390,8 @@ public class ShieldService extends AccessibilityService {
             } else if (eventHandler != null) {
                 eventHandler.post(() -> resolveScroll(copy, arrived, key, true));
             }
-        } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+        } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && isNewScreen(event)) {
             // New screen: tracking from the old one no longer applies.
             trackers.clear();
             sources.clear();
@@ -422,6 +424,24 @@ public class ShieldService extends AccessibilityService {
     }
 
     /** Event thread: find out which list scrolled, then continue on main. */
+    /**
+     * "Window state changed" also comes for small things: a pane or its title changing, a web
+     * page updating its title. Only a different screen (another activity, dialog or app)
+     * resets tracking; resetting on every one of these lost all tracking mid-scroll.
+     */
+    private boolean isNewScreen(AccessibilityEvent e) {
+        int changes = Build.VERSION.SDK_INT >= 28 ? e.getContentChangeTypes() : 0;
+        String what = e.getPackageName() + "/" + e.getClassName();
+        if (trace) {
+            android.util.Log.i("ShieldTrace", "W " + SystemClock.uptimeMillis() + " " + what
+                    + " changes=" + changes);
+        }
+        if (changes != 0) return false;
+        if (what.equals(lastScreen)) return false;
+        lastScreen = what;
+        return true;
+    }
+
     private static String sourceKey(AccessibilityEvent e) {
         boolean sideways = Build.VERSION.SDK_INT >= 28
                 && e.getScrollDeltaX() != 0 && e.getScrollDeltaX() != -1;
