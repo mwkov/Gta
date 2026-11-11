@@ -201,6 +201,7 @@ public class ShieldService extends AccessibilityService {
         int lastSX = -1, lastSY = -1;
         int inFlight;
         int epoch;               // bumped when a read moves this list's covers
+        boolean blind;           // moving, but neither events nor re-reads say how far
         boolean moving;
         Cover anchor;
         float lastPollX = Float.NaN, lastPollY = Float.NaN;
@@ -504,6 +505,7 @@ public class ShieldService extends AccessibilityService {
             if (pickAnchor(t) != null || armed) {
                 t.moving = true;
                 scrolling = true;
+                if (t.anchor == null) t.blind = true;
                 startFrames();
             }
             return;
@@ -525,6 +527,7 @@ public class ShieldService extends AccessibilityService {
             t.tx.addDelta(-dx, at, window);
             t.ty.addDelta(-dy, at, window);
         }
+        t.blind = false;
         t.lastEventSent = at;
         t.lastEventArr = Math.max(t.lastEventArr, arrived);
         t.lastSeen = now;
@@ -593,7 +596,7 @@ public class ShieldService extends AccessibilityService {
                 boolean eventsStill = now - t.lastEventArr > STOP_EVENT_MS
                         && now - t.lastPollLive > 100;
                 if (pollsStill || eventsStill) {
-                    t.moving = false;
+                    t.moving = false;   // (stays blind until a read shows what's there)
                     t.tx.stop(now);
                     t.ty.stop(now);
                     scheduleScan(0);   // settled: a fresh read confirms exact positions
@@ -736,6 +739,7 @@ public class ShieldService extends AccessibilityService {
         t.lastPollY = b.top;
         t.lastPollLive = now;
         t.lastSeen = now;
+        t.blind = false;
         t.tx.setPosition(truthX, at);
         t.ty.setPosition(truthY, at);
         if (moved) {
@@ -1302,7 +1306,10 @@ public class ShieldService extends AccessibilityService {
         // Whatever moved after this read began is still unread (edge curtain).
         if (!incomplete) {
             for (Tracker t : trackers) {
-                if (area == null || movesWith(t.c, area)) t.unX = t.unY = 0;
+                if (area == null || movesWith(t.c, area)) {
+                    t.unX = t.unY = 0;
+                    t.blind = false;
+                }
             }
             for (Shift s : shifts) {
                 if (s.seq <= startSeq) continue;
@@ -1366,7 +1373,7 @@ public class ShieldService extends AccessibilityService {
         render();
 
         boolean curtainUp = false;
-        for (Tracker t : trackers) if (t.unX != 0 || t.unY != 0) curtainUp = true;
+        for (Tracker t : trackers) if (t.unX != 0 || t.unY != 0 || t.blind) curtainUp = true;
         main.removeCallbacks(recheckRunnable);
         if (anyActive || incomplete) {
             // keep reading while it scrolls / until clean (gently, if the app is slow)
@@ -1424,6 +1431,11 @@ public class ShieldService extends AccessibilityService {
             }
             if (edgeCurtain && armed) {
                 for (Tracker t : trackers) {
+                    if (t.blind) {
+                        // It moves and nothing says how far: what's in it now is unknown.
+                        plain.add(new Rect(t.c));
+                        continue;
+                    }
                     if (wholePageRead(t.c)) continue;   // everything coming is known already
                     // The strip of content that came into view since the last complete read.
                     float vy = t.ty.velocity();
