@@ -21,14 +21,14 @@ Starting: Intent { cmp=dev.mwkov.spoilershield/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.spoilershield/.MainActivity
-TotalTime: 1110
-WaitTime: 1142
+TotalTime: 1134
+WaitTime: 1219
 Complete
 + sleep 3
 + adb shell am force-stop dev.mwkov.spoilershield
 + cat
 + adb push /home/runner/work/_temp/results/shield.xml /data/local/tmp/shield.xml
-/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 4.8 MB/s (299 bytes in 0.000s)
+/home/runner/work/_temp/results/shield.xml: 1 file pushed, 0 skipped. 6.8 MB/s (299 bytes in 0.000s)
 + adb shell 'mkdir -p /data/data/dev.mwkov.spoilershield/shared_prefs && cp /data/local/tmp/shield.xml /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && U=$(stat -c %u /data/data/dev.mwkov.spoilershield) && chown -R $U:$U /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 771 /data/data/dev.mwkov.spoilershield/shared_prefs && chmod 660 /data/data/dev.mwkov.spoilershield/shared_prefs/shield.xml && restorecon -R /data/data/dev.mwkov.spoilershield/shared_prefs'
 SELinux: Loaded file context from:
 		/system/etc/selinux/plat_file_contexts
@@ -43,19 +43,19 @@ SELinux: Loaded file context from:
 + adb shell wm size
 + adb shell wm density
 + adb logcat -c
-+ LOGPID=3367
-+ FULLPID=3368
++ LOGPID=3384
++ FULLPID=3385
 + health start
 + adb logcat -v raw -s ShieldTrace:I ShieldHarness:I
-++ adb shell pidof dev.mwkov.spoilershield
 + adb logcat -v threadtime -b main,system,crash '*:W' ActivityManager:I AccessibilityManagerService:V ShieldTrace:S ShieldHarness:S H:S
 ++ tr -d '\r'
-+ P=2658
+++ adb shell pidof dev.mwkov.spoilershield
++ P=2619
 ++ adb shell cat /proc/uptime
-+ echo '== start pid=[2658] 100.74 248.81'
-+ '[' -n 2658 ']'
-+ timeout 20 adb shell debuggerd -j 2658
++ echo '== start pid=[2619] 111.79 278.11'
++ '[' -n 2619 ']'
 + grep -A14 '^"main"\|^"shield-'
++ timeout 20 adb shell debuggerd -j 2619
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
 ++ adb shell wm size
@@ -77,8 +77,8 @@ Starting: Intent { cmp=dev.mwkov.shieldtest/.ListActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.ListActivity
-TotalTime: 1224
-WaitTime: 1258
+TotalTime: 1261
+WaitTime: 1336
 Complete
 + sleep 6
 + clear_dialogs
@@ -90,11 +90,11 @@ Complete
 + health 'list shown'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2658
++ P=2619
 ++ adb shell cat /proc/uptime
-+ echo '== list shown pid=[2658] 108.35 269.54'
-+ '[' -n 2658 ']'
-+ timeout 20 adb shell debuggerd -j 2658
++ echo '== list shown pid=[2619] 119.60 297.76'
++ '[' -n 2619 ']'
++ timeout 20 adb shell debuggerd -j 2619
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
@@ -310,15 +310,15 @@ Complete
 + health 'list measured'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2658
++ P=2619
 ++ adb shell cat /proc/uptime
-+ echo '== list measured pid=[2658] 137.77 343.79'
-+ '[' -n 2658 ']'
-+ timeout 20 adb shell debuggerd -j 2658
++ echo '== list measured pid=[2619] 149.66 358.44'
++ '[' -n 2619 ']'
++ timeout 20 adb shell debuggerd -j 2619
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-+ REC=3607
++ REC=3596
 + sleep 1
 + adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/list.mp4
 + mark video
@@ -382,9 +382,9 @@ Complete
 + sleep 2
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 3607
++ kill 3596
 + timeout 60 adb pull /sdcard/list.mp4 /home/runner/work/_temp/results/list.mp4
-/sdcard/list.mp4: 1 file pulled, 0 skipped. 85.6 MB/s (664327 bytes in 0.007s)
+/sdcard/list.mp4: 1 file pulled, 0 skipped. 107.3 MB/s (787001 bytes in 0.007s)
 + mark end
 + adb shell log -p i -t ShieldHarness 'M end'
 + adb shell am force-stop dev.mwkov.shieldtest
@@ -400,8 +400,8 @@ Starting: Intent { cmp=dev.mwkov.shieldtest/.WebActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.WebActivity
-TotalTime: 1510
-WaitTime: 1514
+TotalTime: 1745
+WaitTime: 1800
 Complete
 + sleep 6
 + clear_dialogs
@@ -413,11 +413,11 @@ Complete
 + health 'web shown'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2658
++ P=2619
 ++ adb shell cat /proc/uptime
-+ echo '== web shown pid=[2658] 164.89 385.73'
-+ '[' -n 2658 ']'
-+ timeout 20 adb shell debuggerd -j 2658
++ echo '== web shown pid=[2619] 177.49 396.62'
++ '[' -n 2619 ']'
++ timeout 20 adb shell debuggerd -j 2619
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
@@ -633,15 +633,15 @@ Complete
 + health 'web measured'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2658
++ P=2619
 ++ adb shell cat /proc/uptime
-+ echo '== web measured pid=[2658] 194.06 444.36'
-+ '[' -n 2658 ']'
-+ timeout 20 adb shell debuggerd -j 2658
++ echo '== web measured pid=[2619] 207.59 456.51'
++ '[' -n 2619 ']'
++ timeout 20 adb shell debuggerd -j 2619
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-+ REC=3881
++ REC=3844
 + sleep 1
 + adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/web.mp4
 + mark video
@@ -705,16 +705,16 @@ Complete
 + sleep 2
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 3881
++ kill 3844
 + timeout 60 adb pull /sdcard/web.mp4 /home/runner/work/_temp/results/web.mp4
-/sdcard/web.mp4: 1 file pulled, 0 skipped. 112.9 MB/s (711315 bytes in 0.006s)
+/sdcard/web.mp4: 1 file pulled, 0 skipped. 95.1 MB/s (826882 bytes in 0.008s)
 + mark end
 + adb shell log -p i -t ShieldHarness 'M end'
 + adb shell am force-stop dev.mwkov.shieldtest
 + sleep 2
-+ kill 3367 3368
++ kill 3384 3385
 + adb shell screencap -p /sdcard/last.png
 + adb pull /sdcard/last.png /home/runner/work/_temp/results/last.png
-/sdcard/last.png: 1 file pulled, 0 skipped. 117.1 MB/s (491526 bytes in 0.004s)
+/sdcard/last.png: 1 file pulled, 0 skipped. 28.6 MB/s (491628 bytes in 0.016s)
 + wc -l /home/runner/work/_temp/results/log.txt
-12525 /home/runner/work/_temp/results/log.txt
+13215 /home/runner/work/_temp/results/log.txt
