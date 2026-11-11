@@ -74,7 +74,15 @@ public class ShieldService extends AccessibilityService {
     private int scanErrors;                       // scan thread only: parts we failed to read
     private long scanStartSeq;                    // scan thread only
     private int incompleteStreak;                 // main thread
-    private static final long OFFSCREEN_BUDGET_MS = 80;
+    private static final long DEEP_BUDGET_MS = 2500;   // whole-page read, only while idle
+    private static final int DEEP_MAX_NODES = 8000;
+    private volatile boolean scrolling;           // set on main, read by the scan thread
+    private boolean deepAllowed;                  // scan thread only
+    private volatile boolean forceDeep = true;
+    private long lastDeepMs;                      // scan thread only
+    private boolean deepCut;                      // scan thread only: whole-page read cut short
+    private List<Rect> scanDeepAreas;             // scan thread only: areas exposing off-screen
+    private List<Rect> deepAreas = new ArrayList<>();   // main: areas whose whole page is read
 
     // Debug numbers (main thread)
     private String dbgScan = "scan: -";
@@ -206,6 +214,8 @@ public class ShieldService extends AccessibilityService {
             // New screen / app: tracking state from the old one no longer applies.
             trackers.clear();
             shifts.clear();
+            deepAreas = new ArrayList<>();
+            forceDeep = true;
             armed = false;
             CharSequence pk = event.getPackageName();
             String pkg = pk == null ? "" : pk.toString();
@@ -283,12 +293,21 @@ public class ShieldService extends AccessibilityService {
         }
         t.lastEvent = now;
         t.active = true;
+        scrolling = true;
         startFrames();
         render();
     }
 
     private Tracker trackerFor(Rect container) {
         for (Tracker t : trackers) if (t.c.equals(container)) return t;
+        // Same scrolling area whose edges shifted a little (toolbars collapsing): keep its
+        // velocity and history instead of starting a second tracker next to it.
+        for (Tracker t : trackers) {
+            if (overlapShare(t.c, container) >= 0.75f && overlapShare(container, t.c) >= 0.75f) {
+                t.c.set(container);
+                return t;
+            }
+        }
         Tracker t = new Tracker(new Rect(container));
         trackers.add(t);
         return t;
@@ -297,12 +316,16 @@ public class ShieldService extends AccessibilityService {
     /** True if a cover living in scroll area `clip` moves when area `c` scrolls. */
     private static boolean movesWith(Rect clip, Rect c) {
         if (clip == null) return false;
-        if (c.contains(clip)) return true;
-        if (clip.contains(c)) {
-            long a = (long) c.width() * c.height(), b = (long) clip.width() * clip.height();
-            return b > 0 && a * 10 >= b * 7;   // practically the same area
-        }
-        return false;
+        return overlapShare(clip, c) >= 0.6f;
+    }
+
+    /** How much of `a` lies inside `b`, 0..1. */
+    private static float overlapShare(Rect a, Rect b) {
+        int w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        int h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (w <= 0 || h <= 0) return 0;
+        long area = (long) a.width() * a.height();
+        return area <= 0 ? 0 : (float) ((double) w * h / area);
     }
 
     private void applyMove(Tracker t, float dx, float dy) {
@@ -350,6 +373,9 @@ public class ShieldService extends AccessibilityService {
             Choreographer.getInstance().postFrameCallback(frameCallback);
         } else {
             framesRunning = false;
+            scrolling = false;
+            forceDeep = true;
+            scheduleScan(0);   // idle again: go read the whole page
         }
     }
 
@@ -368,6 +394,15 @@ public class ShieldService extends AccessibilityService {
         scanNodes = 0;
         scanErrors = 0;
         scanStartSeq = startSeq;
+        // While idle the app answers fast: read the whole page. Not more than every few
+        // seconds though, unless scrolling just stopped or the screen changed.
+        deepAllowed = !scrolling && (forceDeep || scanStartMs - lastDeepMs > 3000);
+        if (deepAllowed) {
+            forceDeep = false;
+            lastDeepMs = scanStartMs;
+        }
+        deepCut = false;
+        scanDeepAreas = new ArrayList<>();
         final List<Cover> found = new ArrayList<>();
         Pattern p = pattern;
         if (enabled && p != null) {
@@ -397,10 +432,12 @@ public class ShieldService extends AccessibilityService {
         final long took = SystemClock.uptimeMillis() - scanStartMs;
         final int nodes = scanNodes;
         final int errors = scanErrors;
+        final boolean deepDone = deepAllowed && !deepCut && errors == 0;
+        final List<Rect> areas = scanDeepAreas;
         main.post(() -> {
             dbgScan = "scan: " + took + "ms, " + nodes + " nodes, " + found.size() + " hits, "
-                    + errors + " err";
-            applyScan(found, startSeq, errors);
+                    + errors + " err, " + (deepDone ? "FULL x" + areas.size() : "visible");
+            applyScan(found, startSeq, errors, deepDone, areas);
         });
     }
 
@@ -437,19 +474,27 @@ public class ShieldService extends AccessibilityService {
         try {
             boolean visible = node.isVisibleToUser();
             if (!visible) {
-                // Off-screen pre-detection is a bonus: skip it when the read is running long.
-                if (SystemClock.uptimeMillis() - scanStartMs > OFFSCREEN_BUDGET_MS) return;
-                // Keep content that is merely scrolled off the top/bottom of its scrolling
-                // area (web pages expose this), so its cover is ready before it scrolls in.
+                // Content scrolled off the top/bottom of its scrolling area (web pages expose
+                // the whole page). Read it only while idle, when the app answers quickly;
+                // its covers are then ready long before it scrolls into view.
                 if (container == null) return;
+                if (!deepAllowed || scrolling || scanNodes > DEEP_MAX_NODES
+                        || SystemClock.uptimeMillis() - scanStartMs > DEEP_BUDGET_MS) {
+                    deepCut = true;
+                    return;
+                }
                 node.getBoundsInScreen(tmp);
                 if (tmp.isEmpty()) return;
                 if (Rect.intersects(tmp, container)) return;          // hidden, not scrolled off
                 if (tmp.right <= container.left || tmp.left >= container.right) return;
-                int reach = container.height();
-                if (tmp.bottom < container.top - reach || tmp.top > container.bottom + reach) {
-                    return;
+                boolean known = false;
+                for (Rect a : scanDeepAreas) {
+                    if (a.equals(container)) {
+                        known = true;
+                        break;
+                    }
                 }
+                if (!known) scanDeepAreas.add(new Rect(container));
             }
 
             if (!node.isEditable() && (matches(p, node.getText())
@@ -492,13 +537,7 @@ public class ShieldService extends AccessibilityService {
     private Cover coverFor(AccessibilityNodeInfo node, Rect container) {
         // Positions we walked past may be a batch old. Re-read this one now and remember the
         // movement counter, so later only movement AFTER this instant is added on top.
-        long seq = shiftSeq.get();
-        if (container != null && !node.refresh()) {
-            // Couldn't re-read: keep the position we have (as of the start of this read)
-            // rather than dropping a known spoiler.
-            scanErrors++;
-            seq = scanStartSeq;
-        }
+        long seq = scanStartSeq;
         Rect r = new Rect();
         node.getBoundsInScreen(r);
         if (r.isEmpty()) return null;
@@ -506,6 +545,7 @@ public class ShieldService extends AccessibilityService {
             if (!scanScreen.isEmpty() && !r.intersect(scanScreen)) return null;
             return new Cover(new RectF(r), null, seq);
         }
+        final int oldLeft = r.left, oldTop = r.top;
         if (coverCard && !scanScreen.isEmpty()) {
             int maxH = (int) (scanScreen.height() * ITEM_MAX_HEIGHT);
             AccessibilityNodeInfo cur = node;
@@ -515,11 +555,24 @@ public class ShieldService extends AccessibilityService {
                         || parent.getCollectionInfo() != null) {
                     break;   // `cur` is a direct item of the list / scrolling area
                 }
-                parent.refresh();
                 parent.getBoundsInScreen(tmp);
                 if (tmp.isEmpty() || tmp.height() > maxH) break;
                 r.union(tmp);
                 cur = parent;
+            }
+        }
+        // The positions above may be a batch old. While scrolling, re-read just this one node
+        // and slide the whole cover by however far it has moved since (one request per hit).
+        if (scrolling) {
+            long now = shiftSeq.get();
+            if (node.refresh()) {
+                node.getBoundsInScreen(tmp);
+                if (!tmp.isEmpty()) {
+                    r.offset(tmp.left - oldLeft, tmp.top - oldTop);
+                    seq = now;
+                }
+            } else {
+                scanErrors++;
             }
         }
         return new Cover(new RectF(r), new Rect(container), seq);
@@ -538,7 +591,8 @@ public class ShieldService extends AccessibilityService {
 
     // ------------------------------------------------------------------ results (main thread)
 
-    private void applyScan(List<Cover> found, long startSeq, int errors) {
+    private void applyScan(List<Cover> found, long startSeq, int errors, boolean deepDone,
+            List<Rect> areas) {
         // A read that hit errors may have missed spoilers. Don't uncover anything on its
         // word: keep existing covers it didn't re-find, keep the curtain, and read again.
         boolean incomplete = errors > 0 && incompleteStreak < 6;
@@ -555,7 +609,17 @@ public class ShieldService extends AccessibilityService {
                 }
                 if (!refound) keep.add(old);
             }
+        } else if (!deepDone) {
+            // This read only looked at what's on screen. Covers placed earlier for content
+            // that is still scrolled out of view stay where they are.
+            RectF clipF = new RectF();
+            for (Cover old : covers) {
+                if (old.clip == null) continue;
+                clipF.set(old.clip);
+                if (!RectF.intersects(old.r, clipF)) keep.add(old);
+            }
         }
+        if (deepDone) deepAreas = areas;
         // Content may have moved while we were reading: bring the results up to date.
         for (Shift s : shifts) {
             if (s.seq <= startSeq) continue;
@@ -623,6 +687,7 @@ public class ShieldService extends AccessibilityService {
             }
             if (edgeCurtain && armed) {
                 for (Tracker t : trackers) {
+                    if (wholePageRead(t.c)) continue;   // everything coming is already known
                     // Strip of content that entered since the last completed read (+ a little
                     // lead for the frames it takes this overlay to reach the display).
                     float h = Math.abs(t.unY) + Math.abs(t.vy) * 30f;
@@ -651,6 +716,14 @@ public class ShieldService extends AccessibilityService {
         } else {
             overlay.setDebug(null);
         }
+    }
+
+    /** True if a completed whole-page read covers this scrolling area. */
+    private boolean wholePageRead(Rect c) {
+        for (Rect a : deepAreas) {
+            if (overlapShare(c, a) >= 0.5f) return true;
+        }
+        return false;
     }
 
     @Override
