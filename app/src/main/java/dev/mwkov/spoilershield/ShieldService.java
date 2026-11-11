@@ -920,6 +920,14 @@ public class ShieldService extends AccessibilityService {
                     return;
                 }
                 node.getBoundsInScreen(rd.tmp);
+                if (trace && rd.invisibles <= 6 && rd.deep) {
+                    CharSequence tx = node.getText();
+                    android.util.Log.i("ShieldTrace", "I " + SystemClock.uptimeMillis() + " "
+                            + rd.tmp.toShortString() + " in " + container.toShortString() + " "
+                            + node.getClassName() + " '" + (tx == null ? "" : tx.subSequence(0,
+                            Math.min(20, tx.length()))) + "' extra=" + (Build.VERSION.SDK_INT >= 26
+                            ? node.getAvailableExtraData() : null));
+                }
                 if (rd.tmp.isEmpty()) return;
                 if (Rect.intersects(rd.tmp, container)) return;      // hidden, not scrolled off
                 if (rd.tmp.right <= container.left || rd.tmp.left >= container.right) return;
@@ -936,7 +944,16 @@ public class ShieldService extends AccessibilityService {
             if (!node.isEditable() && (matches(p, node.getText())
                     || matches(p, node.getContentDescription())
                     || (Build.VERSION.SDK_INT >= 30 && matches(p, node.getStateDescription())))) {
-                Cover c = coverFor(rd, tightest(node, p, 0), container);
+                AccessibilityNodeInfo hit = tightest(node, p, 0);
+                if (trace && rd.found.isEmpty()) {
+                    Rect hb = new Rect();
+                    hit.getBoundsInScreen(hb);
+                    android.util.Log.i("ShieldTrace", "T " + SystemClock.uptimeMillis() + " "
+                            + hit.getClassName() + " " + hb.toShortString() + " children="
+                            + hit.getChildCount() + " extra=" + (Build.VERSION.SDK_INT >= 26
+                            ? hit.getAvailableExtraData() : null));
+                }
+                Cover c = coverFor(rd, hit, container);
                 if (c != null) rd.found.add(c);
                 return; // everything inside is covered already
             }
