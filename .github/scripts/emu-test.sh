@@ -29,7 +29,7 @@ cat > "$OUT/shield.xml" <<X
     <boolean name="enabled" value="true" />
     <boolean name="cover_card" value="false" />
     <boolean name="scroll_blackout" value="true" />
-    <boolean name="debug" value="true" />
+    <boolean name="debug" value="false" />
     <boolean name="trace" value="true" />
 </map>
 X

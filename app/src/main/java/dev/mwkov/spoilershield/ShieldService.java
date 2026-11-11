@@ -925,8 +925,7 @@ public class ShieldService extends AccessibilityService {
                     android.util.Log.i("ShieldTrace", "I " + SystemClock.uptimeMillis() + " "
                             + rd.tmp.toShortString() + " in " + container.toShortString() + " "
                             + node.getClassName() + " '" + (tx == null ? "" : tx.subSequence(0,
-                            Math.min(20, tx.length()))) + "' extra=" + (Build.VERSION.SDK_INT >= 26
-                            ? node.getAvailableExtraData() : null));
+                            Math.min(20, tx.length()))) + "' extras=" + bundleText(node.getExtras()));
                 }
                 if (rd.tmp.isEmpty()) return;
                 if (Rect.intersects(rd.tmp, container)) return;      // hidden, not scrolled off
@@ -1086,15 +1085,21 @@ public class ShieldService extends AccessibilityService {
      */
     private boolean textBounds(Read rd, AccessibilityNodeInfo node, Rect text, Rect nodeBounds) {
         if (Build.VERSION.SDK_INT < 26 || rd.charLookups >= MAX_CHAR_LOOKUPS) return false;
-        final String key = AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
+        // Apps advertise it under the framework name or AndroidX's (web views use the latter).
         List<String> extra = node.getAvailableExtraData();
-        if (extra == null || !extra.contains(key)) return false;
+        if (extra == null) return false;
+        String key = null;
+        for (String k : extra) if (k.endsWith("DATA_TEXT_CHARACTER_LOCATION_KEY")) key = k;
+        if (key == null) return false;
+        String argPrefix = key.substring(0, key.length() - "KEY".length());
         CharSequence s = node.getText();
         if (s == null || s.length() == 0 || s.length() > 2000) return false;
         rd.charLookups++;
         android.os.Bundle args = new android.os.Bundle();
         args.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, 0);
         args.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, s.length());
+        args.putInt(argPrefix + "ARG_START_INDEX", 0);
+        args.putInt(argPrefix + "ARG_LENGTH", s.length());
         AccessibilityNodeInfo copy = Build.VERSION.SDK_INT >= 30
                 ? new AccessibilityNodeInfo(node) : AccessibilityNodeInfo.obtain(node);
         if (!copy.refreshWithExtraData(key, args)) return false;
@@ -1112,6 +1117,13 @@ public class ShieldService extends AccessibilityService {
                 (int) Math.ceil(u.right), (int) Math.ceil(u.bottom));
         copy.getBoundsInScreen(nodeBounds);
         return !text.isEmpty() && !nodeBounds.isEmpty();
+    }
+
+    private static String bundleText(android.os.Bundle b) {
+        if (b == null) return "-";
+        StringBuilder sb = new StringBuilder("{");
+        for (String k : b.keySet()) sb.append(k).append('=').append(b.get(k)).append(' ');
+        return sb.append('}').toString();
     }
 
     private void readScreenBounds(Rect out) {

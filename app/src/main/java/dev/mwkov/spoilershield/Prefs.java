@@ -48,7 +48,7 @@ final class Prefs {
     }
 
     static boolean debug(Context c) {
-        return get(c).getBoolean(KEY_DEBUG, true);
+        return get(c).getBoolean(KEY_DEBUG, false);
     }
 
     static String pattern(Context c) {
