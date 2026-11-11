@@ -55,7 +55,11 @@ jobs:
           emulator -version | head -1
           ldd "$ANDROID_HOME/emulator/qemu/linux-x86_64/qemu-system-x86_64" | grep "not found" || echo "all emulator libraries found"
           emulator -accel-check || true
-          echo no | avdmanager create avd -n t -k "$IMG" -d pixel_6
+          export ANDROID_AVD_HOME="$HOME/.android/avd"; mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          echo no | avdmanager create avd -n t -k "$IMG" -d pixel_6 -p "$ANDROID_AVD_HOME/t.avd" --force
+          ls -la "$ANDROID_AVD_HOME"
+          emulator -list-avds
           set +x
           nohup emulator -avd t -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
             -no-snapshot -no-metrics -camera-back none -camera-front none > "$OUT/emulator.txt" 2>&1 &
