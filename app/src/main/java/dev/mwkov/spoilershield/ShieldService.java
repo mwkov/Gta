@@ -66,6 +66,7 @@ public class ShieldService extends AccessibilityService {
     private static final long DEEP_BUDGET_MS = 2500;
     private static final long READ_BUDGET_MS = 2000;      // one window, what's on screen
     private static final int READERS = 3;
+    private static final int MAX_CHAR_LOOKUPS = 24;       // per read: one request each
     private static final long SHIFT_KEEP_MS = 20000;
     private static final int DEEP_MAX_NODES = 8000;
     // Every read is answered on the other app's main thread. While it scrolls, reading
@@ -433,10 +434,22 @@ public class ShieldService extends AccessibilityService {
             dbgScroll = "scroll: d=(" + dx + "," + dy + ") " + cls + " h=" + container.height()
                     + " late=" + (SystemClock.uptimeMillis() - arrived) + "ms";
         }
-        if (dx == 0 && dy == 0) return;
-
         long now = SystemClock.uptimeMillis();
         if (trace) android.util.Log.i("ShieldTrace", "E " + now + " " + (now - arrived) + " " + dy);
+        if (dx == 0 && dy == 0) {
+            // Some lists (ListView and others that move rows instead of scrolling) report
+            // "I scrolled" without saying how far. It still means: this list is moving now.
+            // Re-read its position every frame; that is where the movement comes from.
+            t.lastEventArr = Math.max(t.lastEventArr, arrived);
+            t.lastSeen = now;
+            t.hotUntil = Math.max(t.hotUntil, now + HOT_AFTER_MOVE_MS);
+            if (pickAnchor(t) != null || armed) {
+                t.moving = true;
+                scrolling = true;
+                startFrames();
+            }
+            return;
+        }
         long at = event.getEventTime();   // when the app sent it: no delivery jitter
         if (at <= 0 || at > now) at = now;
         if (Math.abs(dy) > container.height() * 3 || Math.abs(dx) > container.width() * 3) {
@@ -588,7 +601,7 @@ public class ShieldService extends AccessibilityService {
         final AccessibilityNodeInfo original = a.node;
         h.post(() -> {
             long t0 = SystemClock.uptimeMillis();
-            boolean ok = false, still = false;
+            boolean ok = false, still = false, shows = false;
             Rect b = new Rect();
             try {
                 // A private copy, so two re-reads can run at once without sharing state.
@@ -600,20 +613,24 @@ public class ShieldService extends AccessibilityService {
                     n.getBoundsInScreen(b);
                     // RecyclerView reuses rows: if the text no longer matches, this row now
                     // shows something else and its position means nothing.
-                    still = n.isVisibleToUser() && p != null
+                    shows = p != null
                             && (matches(p, n.getText()) || matches(p, n.getContentDescription()));
+                    still = shows && n.isVisibleToUser();
                 }
             } catch (RuntimeException e) {
                 ok = false;
             }
             long t1 = SystemClock.uptimeMillis();
             final boolean fine = ok && still && !b.isEmpty();
-            main.post(() -> onPoll(t, a, epoch, fine, b, t0, t1, shownX, shownY, drawnX, drawnY));
+            // answered, and it shows other content now (or scrolled out of view)
+            final int gone = !ok || still ? 0 : shows ? 1 : 2;
+            main.post(() -> onPoll(t, a, epoch, fine, gone, b, t0, t1, shownX, shownY,
+                    drawnX, drawnY));
         });
     }
 
-    private void onPoll(Tracker t, Cover a, int epoch, boolean ok, Rect b, long t0, long t1,
-            float shownX, float shownY, float drawnX, float drawnY) {
+    private void onPoll(Tracker t, Cover a, int epoch, boolean ok, int gone, Rect b,
+            long t0, long t1, float shownX, float shownY, float drawnX, float drawnY) {
         t.inFlight = Math.max(0, t.inFlight - 1);
         if (!trackers.contains(t)) return;
         // A read put this list's covers in new places after this question was asked: the
@@ -629,6 +646,10 @@ public class ShieldService extends AccessibilityService {
         if (t.anchor != a) return;
         if (!ok) {
             t.anchor = null;
+            // The row now shows other content (lists reuse rows) or scrolled away: its cover
+            // marks nothing any more. A fresh read places covers where the text is now.
+            // (Out of view on a page that was read whole: keep it for when it comes back.)
+            if (gone == 2 || (gone == 1 && !wholePageRead(t.c))) dropStale(a);
             return;
         }
         // The position is from the app's last drawn frame, a few ms before it answered.
@@ -642,6 +663,7 @@ public class ShieldService extends AccessibilityService {
         float plausible = 200 + (Math.abs(t.ty.velocity()) + Math.abs(t.tx.velocity())) * 120;
         if (jump > plausible) {   // the row was reused for other content: pick another
             t.anchor = null;
+            dropStale(a);
             return;
         }
         boolean moved = !Float.isNaN(t.lastPollY)
@@ -662,6 +684,14 @@ public class ShieldService extends AccessibilityService {
         }
         if (t.busy(now) || t.hot(now)) startFrames();
     }
+    private void dropStale(Cover a) {
+        if (!covers.remove(a)) return;
+        List<Cover> next = new ArrayList<>(covers);   // covers is replaced, never shared
+        covers = next;
+        render();
+        scheduleScan(0);
+    }
+
 
     /** While still, re-read now and then to notice a scroll that started without a touch. */
     private void scheduleIdlePoll() {
@@ -699,7 +729,7 @@ public class ShieldService extends AccessibilityService {
         final Rect tmp = new Rect();
         final List<Cover> found = new ArrayList<>();
         final List<Rect> deepAreas = new ArrayList<>();
-        int nodes, errors;
+        int nodes, errors, scrollables, invisibles, charLookups;
         boolean deepCut, timedOut;
 
         Read(long startSeq, boolean deep) {
@@ -841,6 +871,10 @@ public class ShieldService extends AccessibilityService {
         android.util.Log.i("ShieldTrace", "S " + now + " " + (now - rd.start) + " " + rd.nodes
                 + " " + rd.found.size() + " " + rd.errors + " "
                 + (label == null ? "win" : label.replace('\n', ' ')));
+        android.util.Log.i("ShieldTrace", "D " + now + " scrollables=" + rd.scrollables
+                + " invisible=" + rd.invisibles + " deep=" + rd.deep + " cut=" + rd.deepCut
+                + " timeout=" + rd.timedOut + " areas=" + rd.deepAreas.size()
+                + " charlookups=" + rd.charLookups);
     }
 
     private static AccessibilityNodeInfo rootOf(AccessibilityWindowInfo w) {
@@ -878,6 +912,7 @@ public class ShieldService extends AccessibilityService {
         try {
             boolean visible = node.isVisibleToUser();
             if (!visible) {
+                rd.invisibles++;
                 if (container == null) return;
                 if (!rd.deep || scrolling || rd.nodes > DEEP_MAX_NODES
                         || SystemClock.uptimeMillis() - rd.start > DEEP_BUDGET_MS) {
@@ -908,6 +943,7 @@ public class ShieldService extends AccessibilityService {
 
             Rect childContainer = container;
             if (visible && node.isScrollable()) {
+                rd.scrollables++;
                 Rect b = new Rect();
                 node.getBoundsInScreen(b);
                 if (!b.isEmpty()) childContainer = b;
@@ -963,13 +999,28 @@ public class ShieldService extends AccessibilityService {
         node.getBoundsInScreen(r);
         if (r.isEmpty()) return null;
         int window = node.getWindowId();
+        // Cover the text itself, not the box around it: a web paragraph's box includes its
+        // padding, a text view's its padding. Ask where the characters are drawn.
+        boolean measuredNow = false;
+        int nodeLeft = r.left, nodeTop = r.top;
+        if (!coverCard || container == null) {
+            long s0 = shiftSeq.get();
+            Rect nb = new Rect(), tb = new Rect();
+            if (textBounds(rd, node, tb, nb) && tb.intersect(nb)) {
+                r.set(tb);
+                nodeLeft = nb.left;
+                nodeTop = nb.top;
+                seq = s0;
+                measuredNow = true;
+            }
+        }
         if (container == null) {
             if (!rd.screen.isEmpty() && !r.intersect(rd.screen)) return null;
             Cover c = new Cover(new RectF(r), null, seq);
             c.window = window;
             return c;
         }
-        final int oldLeft = r.left, oldTop = r.top;
+        final int oldLeft = nodeLeft, oldTop = nodeTop;
         final long textArea = Math.max(1L, (long) r.width() * r.height());
         Rect tmp = rd.tmp;
         if (coverCard && !rd.screen.isEmpty()) {
@@ -990,8 +1041,7 @@ public class ShieldService extends AccessibilityService {
         }
         // Positions above may be a batch old. While scrolling, re-read this one item and
         // slide the cover by however far it moved since (one request per hit).
-        int nodeLeft = oldLeft, nodeTop = oldTop;
-        if (scrolling) {
+        if (scrolling && !measuredNow) {
             long now = shiftSeq.get();
             if (node.refresh()) {
                 node.getBoundsInScreen(tmp);
@@ -1011,6 +1061,40 @@ public class ShieldService extends AccessibilityService {
         c.offX = nodeLeft - r.left;
         c.offY = nodeTop - r.top;
         return c;
+    }
+
+    /**
+     * Where the node's characters are drawn (union), and the node's own bounds measured in the
+     * same answer. Text views, web views and Compose text answer this; others return false.
+     */
+    private boolean textBounds(Read rd, AccessibilityNodeInfo node, Rect text, Rect nodeBounds) {
+        if (Build.VERSION.SDK_INT < 26 || rd.charLookups >= MAX_CHAR_LOOKUPS) return false;
+        final String key = AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
+        List<String> extra = node.getAvailableExtraData();
+        if (extra == null || !extra.contains(key)) return false;
+        CharSequence s = node.getText();
+        if (s == null || s.length() == 0 || s.length() > 2000) return false;
+        rd.charLookups++;
+        android.os.Bundle args = new android.os.Bundle();
+        args.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, 0);
+        args.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, s.length());
+        AccessibilityNodeInfo copy = Build.VERSION.SDK_INT >= 30
+                ? new AccessibilityNodeInfo(node) : AccessibilityNodeInfo.obtain(node);
+        if (!copy.refreshWithExtraData(key, args)) return false;
+        android.os.Parcelable[] boxes = copy.getExtras().getParcelableArray(key);
+        if (boxes == null) return false;
+        RectF u = null;
+        for (android.os.Parcelable b : boxes) {
+            if (!(b instanceof RectF)) continue;   // null = character not on screen
+            RectF f = (RectF) b;
+            if (f.width() <= 0 || f.height() <= 0) continue;
+            if (u == null) u = new RectF(f); else u.union(f);
+        }
+        if (u == null) return false;
+        text.set((int) Math.floor(u.left), (int) Math.floor(u.top),
+                (int) Math.ceil(u.right), (int) Math.ceil(u.bottom));
+        copy.getBoundsInScreen(nodeBounds);
+        return !text.isEmpty() && !nodeBounds.isEmpty();
     }
 
     private void readScreenBounds(Rect out) {
