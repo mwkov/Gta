@@ -15,7 +15,7 @@ def rects(s):
 
 def uncovered(r, cov, step=4):
     l, t, rr, b = r
-    t, b = max(t, 0), min(b, 2400)
+    t, b = max(t, 0), min(b, 2337)   # above the gesture bar
     if b <= t or rr <= l: return 0.0, 0
     tot = vis = 0; vis_rows = 0
     for y in range(t, b, step):
@@ -31,6 +31,7 @@ def main(path):
     lines = open(path, errors='ignore').read().splitlines()
     sections = collections.OrderedDict(); screen = '?'; cur = None
     polls, scans, fingers = collections.defaultdict(list), collections.defaultdict(list), collections.Counter()
+    listscans = collections.defaultdict(list)
     for ln in lines:
         p = ln.split(' ', 2)
         if not p or not p[0]: continue
@@ -48,7 +49,10 @@ def main(path):
             a, _, b = rest.partition(' P ')
             sections[cur]['C'].append((t, rects(a), rects(b)))
         elif k == 'Q': polls[screen].append(int(rest.split()[0]))
-        elif k == 'S': scans[screen].append(int(rest.split()[0]))
+        elif k == 'S':
+            f = rest.split()
+            scans[screen].append(int(f[0]))
+            if len(f) > 5 and f[5] == 'list': listscans[screen].append(int(f[0]))
         elif k == 'F': fingers[screen] += 1
     print('%-8s %-14s %7s %9s %10s %11s %10s' % ('screen', 'gesture', 'frames', 'exposed%', 'worst px', 'cover err', 'err p95'))
     totals = collections.defaultdict(lambda: [0, 0, 0, []])
@@ -60,7 +64,7 @@ def main(path):
             covs = C[ci][1] if ci >= 0 else []
             curt = C[ci][2] if ci >= 0 else []
             for r in hs:
-                if r[3] < 0 or r[1] > 2400: continue
+                if r[3] < 0 or r[1] > 2337: continue
                 frames += 1
                 frac, rows = uncovered(r, covs + curt)
                 if frac > 0.03:
@@ -87,6 +91,8 @@ def main(path):
         print('%-8s re-reads: %d, median %s ms, p90 %s ms | full reads: %d, median %s ms, max %s ms | finger-downs seen: %d'
               % (scr, len(q), statistics.median(q) if q else '-', sorted(q)[int(len(q) * .9)] if q else '-',
                  len(s), statistics.median(s) if s else '-', max(s) if s else '-', fingers[scr]))
+        l = listscans[scr]
+        if l: print('%-8s list-only reads: %d, median %s ms, max %s ms' % (scr, len(l), statistics.median(l), max(l)))
 
 if __name__ == '__main__':
     main(sys.argv[1])
