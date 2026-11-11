@@ -13,9 +13,11 @@ def rects(s):
             out.append(tuple(int(float(x)) for x in p.split(',')))
     return out
 
+BOTTOM = 2337   # above the gesture bar; set from the real screen size in main()
+
 def uncovered(r, cov, step=4):
     l, t, rr, b = r
-    t, b = max(t, 0), min(b, 2337)   # above the gesture bar
+    t, b = max(t, 0), min(b, BOTTOM)
     if b <= t or rr <= l: return 0.0, 0
     tot = vis = 0; vis_rows = 0
     for y in range(t, b, step):
@@ -27,7 +29,12 @@ def uncovered(r, cov, step=4):
         if row_vis: vis_rows += 1
     return (vis / tot if tot else 0.0), vis_rows * step
 
-def main(path):
+def main(path, screen=None):
+    global BOTTOM
+    if screen:
+        import re
+        m = re.search(r'Physical size: (\d+)x(\d+)', open(screen).read())
+        if m: BOTTOM = int(m.group(2)) * 2337 // 2400
     lines = open(path, errors='ignore').read().splitlines()
     sections = collections.OrderedDict(); screen = '?'; cur = None
     polls, scans, fingers = collections.defaultdict(list), collections.defaultdict(list), collections.Counter()
@@ -53,8 +60,8 @@ def main(path):
         elif k == 'S':
             f = rest.split()
             scans[screen].append(int(f[0]))
-            if len(f) > 5 and f[5] == 'list': listscans[screen].append(int(f[0]))
-            elif len(f) > 6: winscans[screen][' '.join(f[6:])[:40]].append(int(f[0]))
+            if len(f) > 4 and f[4] == 'list': listscans[screen].append(int(f[0]))
+            elif len(f) > 5: winscans[screen][' '.join(f[5:])[:40]].append(int(f[0]))
         elif k == 'F': fingers[screen] += 1
     print('%-8s %-14s %7s %9s %10s %11s %10s %12s' % ('screen', 'gesture', 'frames', 'exposed%', 'worst px', 'cover err', 'err p95', 'longest ms'))
     totals = collections.defaultdict(lambda: [0, 0, 0, []])
@@ -68,7 +75,7 @@ def main(path):
             covs = C[ci][1] if ci >= 0 else []
             curt = C[ci][2] if ci >= 0 else []
             for r in hs:
-                if r[3] < 0 or r[1] > 2337: continue
+                if r[3] < 0 or r[1] > BOTTOM: continue
                 frames += 1
                 frac, rows = uncovered(r, covs + curt)
                 if frac > 0.03:
@@ -102,10 +109,15 @@ def main(path):
         print('%-8s re-reads: %d, median %s ms, p90 %s ms | full reads: %d, median %s ms, max %s ms | finger-downs seen: %d'
               % (scr, len(q), statistics.median(q) if q else '-', sorted(q)[int(len(q) * .9)] if q else '-',
                  len(s), statistics.median(s) if s else '-', max(s) if s else '-', fingers[scr]))
+        ht = sorted(t for (s2, n), d in sections.items() if s2 == scr for (t, _) in d['H'])
+        gaps = [b - a for a, b in zip(ht, ht[1:]) if 0 < b - a < 1000]
+        if gaps:
+            print('%-8s test app frames: median %d ms apart, p90 %d ms (a phone: 8-17 ms)'
+                  % (scr, statistics.median(gaps), sorted(gaps)[int(len(gaps) * .9)]))
         l = listscans[scr]
         if l: print('%-8s list-only reads: %d, median %s ms, max %s ms' % (scr, len(l), statistics.median(l), max(l)))
         for lab, v in sorted(winscans[scr].items(), key=lambda kv: -len(kv[1])):
             print('%-8s   window %-40s reads %4d, median %6s ms, max %6d ms' % (scr, lab, len(v), statistics.median(v), max(v)))
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

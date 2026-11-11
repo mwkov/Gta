@@ -61,6 +61,10 @@ jobs:
           export ANDROID_AVD_HOME="$HOME/.android/avd"; mkdir -p "$ANDROID_AVD_HOME"
           echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
           echo no | avdmanager create avd -n t -k "$IMG" -d pixel_6 -p "$ANDROID_AVD_HOME/t.avd" --force
+          # Same phone in dp, at 2/3 the pixels: without a GPU every frame is drawn by the CPU,
+          # and at full size apps managed only a few frames a second (nothing like a phone).
+          sed -i -e '/^hw.lcd.width/d' -e '/^hw.lcd.height/d' -e '/^hw.lcd.density/d' "$ANDROID_AVD_HOME/t.avd/config.ini"
+          printf 'hw.lcd.width=720\nhw.lcd.height=1600\nhw.lcd.density=280\n' >> "$ANDROID_AVD_HOME/t.avd/config.ini"
           ls -la "$ANDROID_AVD_HOME"
           emulator -list-avds
           set +x
@@ -85,7 +89,7 @@ jobs:
           OUT="$RUNNER_TEMP/results"
           timeout 1080 bash .github/scripts/emu-test.sh "$OUT" > "$OUT/run.txt" 2>&1 || echo "test script exit $?"
           tail -30 "$OUT/run.txt"
-          python3 .github/scripts/analyze.py "$OUT/log.txt" > "$OUT/summary.txt" 2>&1 || true
+          python3 .github/scripts/analyze.py "$OUT/log.txt" "$OUT/screen.txt" > "$OUT/summary.txt" 2>&1 || true
           cat "$OUT/summary.txt"
 
       - name: Publish results to the test-results branch

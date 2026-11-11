@@ -177,6 +177,7 @@ public class ShieldService extends AccessibilityService {
         long lastSend, newestPollAt;
         int lastSX = -1, lastSY = -1;
         int inFlight;
+        int epoch;               // bumped when a read moves this list's covers
         boolean moving;
         Cover anchor;
         float lastPollX = Float.NaN, lastPollY = Float.NaN;
@@ -555,6 +556,7 @@ public class ShieldService extends AccessibilityService {
         if (h == null) return;
         t.inFlight++;
         t.lastSend = now;
+        final int epoch = t.epoch;
         final float shownX = t.tx.shown(), shownY = t.ty.shown();
         final float drawnX = a.r.left + a.offX, drawnY = a.r.top + a.offY;
         final Pattern p = pattern;
@@ -581,14 +583,17 @@ public class ShieldService extends AccessibilityService {
             }
             long t1 = SystemClock.uptimeMillis();
             final boolean fine = ok && still && !b.isEmpty();
-            main.post(() -> onPoll(t, a, fine, b, t0, t1, shownX, shownY, drawnX, drawnY));
+            main.post(() -> onPoll(t, a, epoch, fine, b, t0, t1, shownX, shownY, drawnX, drawnY));
         });
     }
 
-    private void onPoll(Tracker t, Cover a, boolean ok, Rect b, long t0, long t1,
+    private void onPoll(Tracker t, Cover a, int epoch, boolean ok, Rect b, long t0, long t1,
             float shownX, float shownY, float drawnX, float drawnY) {
         t.inFlight = Math.max(0, t.inFlight - 1);
         if (!trackers.contains(t)) return;
+        // A read put this list's covers in new places after this question was asked: the
+        // answer compares against where they were then, so it would correct twice.
+        if (epoch != t.epoch) return;
         long now = SystemClock.uptimeMillis();
         if (trace) android.util.Log.i("ShieldTrace", "Q " + now + " " + (t1 - t0) + " " + ok);
         if (debug) {
@@ -1107,6 +1112,12 @@ public class ShieldService extends AccessibilityService {
                     break;
                 }
             }
+        }
+        // Covers placed by this read: re-reads already on their way measured against the old
+        // places and must not be applied on top.
+        for (Cover c : found) {
+            if (scope.contains(c) || c.clip == null) continue;
+            for (Tracker t : trackers) if (movesWith(c.clip, t.c)) t.epoch++;
         }
         List<Cover> next = new ArrayList<>(found);
         next.addAll(keep);

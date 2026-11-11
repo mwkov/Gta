@@ -59,19 +59,26 @@ health() {   # label: is the service process alive, what are its threads doing
 health start
 
 mark() { adb shell log -p i -t ShieldHarness "M $1"; }
+# Gestures are written for a 1080x2400 screen and scaled to the real one.
+SIZE=$(adb shell wm size | tail -1 | sed 's/.*: //' | tr -d '\r')
+SW=${SIZE%x*}; SH=${SIZE#*x}
+X() { echo $(( $1 * SW / 1080 )); }
+Y() { echo $(( $1 * SH / 2400 )); }
+swipe() { adb shell input swipe $(X 540) $(Y $1) $(X 540) $(Y $2) $3; }
+touch_() { adb shell input motionevent $1 $(X 540) $(Y $2); }
 
 gestures() {
-  mark slow_drag;   adb shell input swipe 540 1800 540 900 1500; sleep 2.5
-  mark medium;      adb shell input swipe 540 1800 540 700 400;  sleep 3
-  mark fling_down;  adb shell input swipe 540 2000 540 500 80;   sleep 4
-  mark fling_up;    adb shell input swipe 540 500 540 2000 80;   sleep 4
-  mark drag_hold;   adb shell input motionevent DOWN 540 1800; sleep 0.15
-                    for y in 1750 1700 1650 1600 1550 1500 1450 1400; do adb shell input motionevent MOVE 540 $y; done
+  mark slow_drag;   swipe 1800 900 1500;  sleep 2.5
+  mark medium;      swipe 1800 700 400;   sleep 3
+  mark fling_down;  swipe 2000 500 80;    sleep 4
+  mark fling_up;    swipe 500 2000 80;    sleep 4
+  mark drag_hold;   touch_ DOWN 1800; sleep 0.15
+                    for y in 1750 1700 1650 1600 1550 1500 1450 1400; do touch_ MOVE $y; done
                     sleep 0.8
-                    for y in 1350 1300 1250 1200 1150 1100; do adb shell input motionevent MOVE 540 $y; done
-                    adb shell input motionevent UP 540 1100; sleep 3
+                    for y in 1350 1300 1250 1200 1150 1100; do touch_ MOVE $y; done
+                    touch_ UP 1100; sleep 3
   mark repeat_flings
-  for i in 1 2 3; do adb shell input swipe 540 1900 540 900 120; sleep 1.2; done
+  for i in 1 2 3; do swipe 1900 900 120; sleep 1.2; done
   sleep 3
   mark end
 }
