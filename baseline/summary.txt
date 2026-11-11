@@ -1,20 +1,20 @@
 screen   gesture         frames  exposed%   worst px   cover err    err p95   longest ms
-list     slow_drag          175     27.4%        60       13.3       77.5          393
-list     medium             164     15.9%        60        0.7        0.0          625
-list     fling_down         144     27.1%        60        8.0       40.0          682
-list     fling_up           147     36.7%        60        0.3        0.0         1030
-list     drag_hold          301     24.9%        60        8.5       43.5          449
-list     repeat_flings      252     30.6%        60        1.7        7.5          957
-web      slow_drag          163     12.9%        56       67.0      136.0          246
-web      medium               8     37.5%        48       80.9      127.0            7
-web      fling_down         141      5.7%        56       60.0       60.0          240
-web      fling_up           151      4.0%        56       58.6       59.5           51
-web      drag_hold          309      4.5%        56       64.1       96.0          117
-web      repeat_flings      230      3.5%        56       60.3       59.5          154
+list     slow_drag          179     33.5%        60       13.6       78.0          867
+list     medium              10     30.0%        60       17.9       50.0           21
+list     fling_down          46    100.0%        60        0.0        0.0          645
+list     fling_up            50    100.0%        60       30.0       30.0          682
+list     drag_hold          247     11.7%        52        3.1       25.0          367
+list     repeat_flings      305     24.3%        60        6.9       59.0          575
+web      slow_drag          178     10.7%        56       63.3      118.0          284
+web      medium             161      3.1%        56       60.3       59.5           46
+web      fling_down         135      4.4%        56       63.6       85.5           26
+web      fling_up           161      2.5%        56       61.6       59.5           74
+web      drag_hold          290      9.0%        56       65.3      104.5          161
+web      repeat_flings       50     20.0%        56       72.6      113.5          143
 
-list     TOTAL: GTA text visible on 27.0% of frames, worst 60 px tall, avg cover offset 6.2 px, longest exposure 1030 ms
-web      TOTAL: GTA text visible on 6.0% of frames, worst 56 px tall, avg cover offset 63.3 px, longest exposure 246 ms
-list     re-reads: 262, median 34.5 ms, p90 95 ms | full reads: 84, median 38.0 ms, max 1692 ms | finger-downs seen: 13
-list     test app frames: median 17 ms apart, p90 40 ms (a phone: 8-17 ms)
-web      re-reads: 298, median 11.0 ms, p90 83 ms | full reads: 67, median 8 ms, max 4797 ms | finger-downs seen: 13
-web      test app frames: median 17 ms apart, p90 48 ms (a phone: 8-17 ms)
+list     TOTAL: GTA text visible on 31.3% of frames, worst 60 px tall, avg cover offset 7.2 px, longest exposure 867 ms
+web      TOTAL: GTA text visible on 7.2% of frames, worst 56 px tall, avg cover offset 63.5 px, longest exposure 284 ms
+list     re-reads: 305, median 10 ms, p90 85 ms | full reads: 78, median 54.0 ms, max 1893 ms | finger-downs seen: 13
+list     test app frames: median 17 ms apart, p90 38 ms (a phone: 8-17 ms)
+web      re-reads: 285, median 10 ms, p90 74 ms | full reads: 65, median 11 ms, max 5496 ms | finger-downs seen: 13
+web      test app frames: median 17 ms apart, p90 50 ms (a phone: 8-17 ms)
