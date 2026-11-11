@@ -35,21 +35,39 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Boot emulator and run the test
-        timeout-minutes: 30
+      - name: Boot emulator
+        timeout-minutes: 15
         run: |
+          set -x
           OUT="$RUNNER_TEMP/results"; mkdir -p "$OUT"
+          ls -la /dev/kvm
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
+          echo "$ANDROID_HOME/emulator" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           IMG="system-images;android-34;google_apis;x86_64"
-          yes | sdkmanager --install "$IMG" emulator platform-tools > /dev/null
+          yes | sdkmanager --install "$IMG" emulator platform-tools > /dev/null || true
+          emulator -version | head -1
+          emulator -accel-check || true
           echo no | avdmanager create avd -n t -k "$IMG" -d pixel_6
-          emulator -avd t -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot \
-            -camera-back none -camera-front none > "$OUT/emulator.txt" 2>&1 &
-          adb wait-for-device
-          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ] && break; sleep 5; done
+          nohup emulator -avd t -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
+            -no-snapshot -no-metrics -camera-back none -camera-front none > "$OUT/emulator.txt" 2>&1 &
+          booted=0
+          for i in $(seq 1 120); do
+            if [ "$(timeout 10 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then booted=1; break; fi
+            sleep 5
+          done
+          tail -60 "$OUT/emulator.txt"
+          adb devices
+          [ "$booted" = "1" ] || { echo "emulator did not boot"; exit 1; }
           adb shell input keyevent 82
-          sleep 20
-          bash .github/scripts/emu-test.sh "$OUT" > "$OUT/run.txt" 2>&1 || true
+          sleep 15
+
+      - name: Run the test
+        timeout-minutes: 20
+        run: |
+          OUT="$RUNNER_TEMP/results"
+          timeout 1080 bash .github/scripts/emu-test.sh "$OUT" > "$OUT/run.txt" 2>&1 || echo "test script exit $?"
+          tail -30 "$OUT/run.txt"
           python3 .github/scripts/analyze.py "$OUT/log.txt" > "$OUT/summary.txt" 2>&1 || true
           cat "$OUT/summary.txt"
 
@@ -62,9 +80,15 @@ jobs:
           cd "$RUNNER_TEMP" && rm -rf tr && mkdir tr && cd tr
           git init -q
           git remote add origin "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
-          if git fetch -q --depth 1 origin test-results; then git checkout -q -b test-results FETCH_HEAD; else git checkout -q --orphan test-results; fi
-          rm -rf latest && mkdir latest && cp -r "$OUT"/* latest/ 2>/dev/null || true
-          { echo "=== run ${{ github.run_number }} commit ${GITHUB_SHA::7} $(date -u +%FT%TZ)"; cat latest/summary.txt 2>/dev/null; echo; } >> history.txt
+          set -x
+          if git fetch -q --depth 1 origin test-results; then
+            git checkout -q -b test-results FETCH_HEAD
+          else
+            git symbolic-ref HEAD refs/heads/test-results   # first run: start the branch
+          fi
+          rm -rf latest && mkdir latest
+          cp -r "$OUT"/. latest/ 2>/dev/null || true
+          { echo "=== run ${{ github.run_number }} commit ${GITHUB_SHA::7} $(date -u +%FT%TZ)"; cat latest/summary.txt 2>/dev/null || echo "(no summary)"; echo; } >> history.txt
           git add -A
           git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -q -m "emulator run ${{ github.run_number }} (${GITHUB_SHA::7})"
           git push -q origin test-results

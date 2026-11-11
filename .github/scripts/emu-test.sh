@@ -5,9 +5,9 @@
 set -x
 OUT="$1"; mkdir -p "$OUT"
 PKG=dev.mwkov.spoilershield
-adb install -r app/build/outputs/apk/release/app-release.apk
-adb install -r testapp/build/outputs/apk/debug/testapp-debug.apk
-adb root; sleep 4; adb wait-for-device
+timeout 120 adb install -r app/build/outputs/apk/release/app-release.apk
+timeout 120 adb install -r testapp/build/outputs/apk/debug/testapp-debug.apk
+adb root; sleep 4; timeout 60 adb wait-for-device
 
 # Settings: shield on, cover only the matching text (so cover vs text can be compared
 # exactly), debug numbers + test trace on.
@@ -62,7 +62,7 @@ run() {   # name activity
   sleep 1
   gestures
   adb shell pkill -INT screenrecord; sleep 3; kill $REC 2>/dev/null
-  adb pull /sdcard/$1.mp4 "$OUT/$1.mp4"
+  timeout 60 adb pull /sdcard/$1.mp4 "$OUT/$1.mp4"
   adb shell am force-stop dev.mwkov.shieldtest
 }
 
