@@ -21,8 +21,8 @@ Starting: Intent { cmp=dev.mwkov.spoilershield/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.spoilershield/.MainActivity
-TotalTime: 1033
-WaitTime: 1069
+TotalTime: 1157
+WaitTime: 1244
 Complete
 + sleep 3
 + adb shell am force-stop dev.mwkov.spoilershield
@@ -43,23 +43,23 @@ SELinux: Loaded file context from:
 + adb shell wm size
 + adb shell wm density
 + adb logcat -c
-+ adb logcat -v raw -s ShieldTrace:I ShieldHarness:I
-+ LOGPID=3354
-+ FULLPID=3355
++ LOGPID=3434
++ FULLPID=3435
 + health start
++ adb logcat -v raw -s ShieldTrace:I ShieldHarness:I
 + adb logcat -v threadtime -b main,system,crash '*:W' ActivityManager:I AccessibilityManagerService:V ShieldTrace:S ShieldHarness:S H:S
-++ tr -d '\r'
 ++ adb shell pidof dev.mwkov.spoilershield
-+ P=2651
+++ tr -d '\r'
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== start pid=[2651] 97.67 263.55'
-+ '[' -n 2651 ']'
-+ timeout 20 adb shell debuggerd -j 2651
++ echo '== start pid=[2650] 111.18 270.14'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-++ adb shell wm size
 ++ tail -1
+++ adb shell wm size
 ++ sed 's/.*: //'
 ++ tr -d '\r'
 + SIZE=540x1200
@@ -77,8 +77,8 @@ Starting: Intent { cmp=dev.mwkov.shieldtest/.ListActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.ListActivity
-TotalTime: 1112
-WaitTime: 1118
+TotalTime: 1302
+WaitTime: 1354
 Complete
 + sleep 6
 + clear_dialogs
@@ -90,11 +90,11 @@ Complete
 + health 'list shown'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2651
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== list shown pid=[2651] 105.10 284.83'
-+ '[' -n 2651 ']'
-+ timeout 20 adb shell debuggerd -j 2651
++ echo '== list shown pid=[2650] 119.06 289.43'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
@@ -311,15 +311,15 @@ Complete
 + health 'list measured'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2651
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== list measured pid=[2651] 134.30 358.32'
-+ '[' -n 2651 ']'
-+ timeout 20 adb shell debuggerd -j 2651
++ echo '== list measured pid=[2650] 149.38 351.88'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-+ REC=3567
++ REC=3650
 + sleep 1
 + adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/list.mp4
 + mark video
@@ -383,9 +383,9 @@ Complete
 + sleep 2
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 3567
++ kill 3650
 + timeout 60 adb pull /sdcard/list.mp4 /home/runner/work/_temp/results/list.mp4
-/sdcard/list.mp4: 1 file pulled, 0 skipped. 152.7 MB/s (854720 bytes in 0.005s)
+/sdcard/list.mp4: 1 file pulled, 0 skipped. 112.5 MB/s (790559 bytes in 0.007s)
 + mark end
 + adb shell log -p i -t ShieldHarness 'M end'
 + sleep 3
@@ -395,12 +395,12 @@ Complete
 + timeout 30 adb shell uiautomator dump /sdcard/recents.xml
 + adb pull /sdcard/recents.xml /home/runner/work/_temp/results/list-recents.xml
 + adb shell dumpsys window windows
-+ grep -i 'Window{.*spoilershield\|mOwnerUid\|mFrame'
 + head -0
++ grep -i 'Window{.*spoilershield\|mOwnerUid\|mFrame'
 grep: write error: Broken pipe
 + adb shell dumpsys window windows
-+ grep -B2 -A8 spoilershield
 + grep 'Window{\|mFrame=\|mHasSurface\|flags='
++ grep -B2 -A8 spoilershield
 + adb shell input keyevent KEYCODE_HOME
 + sleep 1
 + adb shell am start -n dev.mwkov.shieldtest/.ListActivity
@@ -410,8 +410,8 @@ Warning: Activity not started, its current task has been brought to the front
 ++ grep '^C [0-9]* [0-9]'
 ++ tail -1
 +++ adb shell wm density
-+++ sed 's/.*: //'
 +++ tail -1
++++ sed 's/.*: //'
 +++ tr -d '\r'
 ++ python3 -c '
 import sys
@@ -425,9 +425,18 @@ for l, t, r, b in rs:
     right = r - min(10 * d, (h - bh) / 2 + 2 * d); cy = t + min(h / 2, 26 * d)
     print(int(right - bw / 2), int(cy)); break
 '
-+ TAP=
-+ echo 'tap show at: '
-+ '[' -n '' ']'
++ TAP='387 227'
++ echo 'tap show at: 387 227'
++ '[' -n '387 227' ']'
++ adb shell input tap 387 227
++ sleep 0.6
++ adb exec-out screencap -p
++ adb shell input tap 387 227
++ sleep 1.5
++ adb exec-out screencap -p
++ adb logcat -d -v raw -s ShieldTrace:I
++ tail -1
++ grep '^C '
 + adb shell am force-stop dev.mwkov.shieldtest
 + run web WebActivity
 + mark 'screen web'
@@ -441,8 +450,8 @@ Starting: Intent { cmp=dev.mwkov.shieldtest/.WebActivity }
 Status: ok
 LaunchState: COLD
 Activity: dev.mwkov.shieldtest/.WebActivity
-TotalTime: 1254
-WaitTime: 1259
+TotalTime: 1958
+WaitTime: 1974
 Complete
 + sleep 6
 + clear_dialogs
@@ -454,14 +463,14 @@ Complete
 + health 'web shown'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2651
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== web shown pid=[2651] 174.65 442.16'
-+ '[' -n 2651 ']'
-+ timeout 20 adb shell debuggerd -j 2651
++ echo '== web shown pid=[2650] 194.53 431.58'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
-+ grep -i -A1 'Bound services\|Crashed services\|Enabled services'
 + adb shell dumpsys accessibility
++ grep -i -A1 'Bound services\|Crashed services\|Enabled services'
 + adb exec-out screencap -p
 + gestures
 + mark slow_drag
@@ -675,15 +684,15 @@ Complete
 + health 'web measured'
 ++ adb shell pidof dev.mwkov.spoilershield
 ++ tr -d '\r'
-+ P=2651
++ P=2650
 ++ adb shell cat /proc/uptime
-+ echo '== web measured pid=[2651] 204.05 515.54'
-+ '[' -n 2651 ']'
-+ timeout 20 adb shell debuggerd -j 2651
++ echo '== web measured pid=[2650] 225.02 479.93'
++ '[' -n 2650 ']'
++ timeout 20 adb shell debuggerd -j 2650
 + grep -A14 '^"main"\|^"shield-'
 + adb shell dumpsys accessibility
 + grep -i -A1 'Bound services\|Crashed services\|Enabled services'
-+ REC=3883
++ REC=3951
 + sleep 1
 + adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/web.mp4
 + mark video
@@ -747,9 +756,9 @@ Complete
 + sleep 2
 + adb shell pkill -INT screenrecord
 + sleep 3
-+ kill 3883
++ kill 3951
 + timeout 60 adb pull /sdcard/web.mp4 /home/runner/work/_temp/results/web.mp4
-/sdcard/web.mp4: 1 file pulled, 0 skipped. 123.6 MB/s (763588 bytes in 0.006s)
+/sdcard/web.mp4: 1 file pulled, 0 skipped. 79.9 MB/s (716405 bytes in 0.009s)
 + mark end
 + adb shell log -p i -t ShieldHarness 'M end'
 + sleep 3
@@ -773,10 +782,10 @@ Warning: Activity not started, its current task has been brought to the front
 ++ adb logcat -d -v raw -s ShieldTrace:I
 ++ grep '^C [0-9]* [0-9]'
 ++ tail -1
-+++ tail -1
-+++ adb shell wm density
-+++ tr -d '\r'
 +++ sed 's/.*: //'
++++ adb shell wm density
++++ tail -1
++++ tr -d '\r'
 ++ python3 -c '
 import sys
 line = sys.stdin.read().split('\'' P '\'')[0].split('\'' '\'', 2)
@@ -789,23 +798,23 @@ for l, t, r, b in rs:
     right = r - min(10 * d, (h - bh) / 2 + 2 * d); cy = t + min(h / 2, 26 * d)
     print(int(right - bw / 2), int(cy)); break
 '
-+ TAP='472 444'
-+ echo 'tap show at: 472 444'
-+ '[' -n '472 444' ']'
-+ adb shell input tap 472 444
++ TAP='472 453'
++ echo 'tap show at: 472 453'
++ '[' -n '472 453' ']'
++ adb shell input tap 472 453
 + sleep 0.6
 + adb exec-out screencap -p
-+ adb shell input tap 472 444
++ adb shell input tap 472 453
 + sleep 1.5
 + adb exec-out screencap -p
-+ grep '^C '
 + adb logcat -d -v raw -s ShieldTrace:I
++ grep '^C '
 + tail -1
 + adb shell am force-stop dev.mwkov.shieldtest
 + sleep 2
-+ kill 3354 3355
++ kill 3434 3435
 + adb shell screencap -p /sdcard/last.png
 + adb pull /sdcard/last.png /home/runner/work/_temp/results/last.png
-/sdcard/last.png: 1 file pulled, 0 skipped. 109.3 MB/s (500251 bytes in 0.004s)
+/sdcard/last.png: 1 file pulled, 0 skipped. 20.2 MB/s (499712 bytes in 0.024s)
 + wc -l /home/runner/work/_temp/results/log.txt
-15389 /home/runner/work/_temp/results/log.txt
+16066 /home/runner/work/_temp/results/log.txt
