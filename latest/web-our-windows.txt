@@ -1,3 +1,3 @@
-  Window #2 Window{e5ffc5c u0 dev.mwkov.spoilershield}:
-  Window #3 Window{abc3d30 u0 dev.mwkov.spoilershield}:
-  mInputMethodWindow=Window{749a602 u0 InputMethod}
+  Window #2 Window{a7e43e9 u0 dev.mwkov.spoilershield}:
+  Window #3 Window{15735ed u0 dev.mwkov.spoilershield}:
+  mInputMethodWindow=Window{e4a18a3 u0 InputMethod}

@@ -1,4 +1,3 @@
-tap show at: 469 625
-C 161719  P 
-tap show at: 472 436
-C 231977  P 
+tap show at: 
+tap show at: 472 444
+C 238558  P 
