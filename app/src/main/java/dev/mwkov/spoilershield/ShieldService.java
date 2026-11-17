@@ -459,6 +459,11 @@ public class ShieldService extends AccessibilityService {
         } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             CharSequence pk = event.getPackageName();
             String pkg = pk == null ? "" : pk.toString();
+            // Our own windows (the Show buttons) report changes too: they are not a screen.
+            if (pkg.equals(getPackageName()) && !isOurSettings(event)) {
+                scheduleScan(THROTTLE_MS);
+                return;
+            }
             if (!pkg.equals(lastPkg) && !pkg.isEmpty()) {
                 // Leaving an app: its card in Recents shows the screen as it was, so remember
                 // whether spoilers were covered on it right then.
@@ -516,6 +521,11 @@ public class ShieldService extends AccessibilityService {
      * page updating its title. Only a different screen (another activity, dialog or app)
      * resets tracking; resetting on every one of these lost all tracking mid-scroll.
      */
+    private static boolean isOurSettings(AccessibilityEvent e) {
+        CharSequence c = e.getClassName();
+        return c != null && c.toString().endsWith("MainActivity");
+    }
+
     /** A normal app you open from the launcher (not system UI, not the home screen). */
     private boolean isApp(String pkg) {
         if (pkg == null || pkg.isEmpty() || pkg.equals(getPackageName())) return false;
