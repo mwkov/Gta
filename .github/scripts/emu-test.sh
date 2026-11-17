@@ -92,9 +92,26 @@ run() {   # name activity
   adb shell dumpsys window | grep -m3 "mCurrentFocus\|isn't responding" > "$OUT/$1-focus.txt"
   health "$1 shown"
   adb exec-out screencap -p > "$OUT/$1-covers.png"
+  # Measured pass without screen recording: with no GPU the video encoder eats the CPU
+  # that the app and the shield need, and nothing would behave like on a phone.
+  gestures
+  health "$1 measured"
+  # Second pass for the video only (markers prefixed "video" are not counted).
+  adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/$1.mp4 &
+  REC=$!
+  sleep 1
+  mark video
+  adb shell input swipe $(X 540) $(Y 1800) $(X 540) $(Y 900) 1500; sleep 2.5
+  adb shell input swipe $(X 540) $(Y 2000) $(X 540) $(Y 500) 80; sleep 4
+  for i in 1 2 3; do swipe 1900 900 120; sleep 1.2; done
+  sleep 2
+  adb shell pkill -INT screenrecord; sleep 3; kill $REC 2>/dev/null
+  timeout 60 adb pull /sdcard/$1.mp4 "$OUT/$1.mp4"
+  mark end
+  sleep 3
   # Tap the first cover's "Show" button (same placement as OverlayView.showButton) and check
   # that the cover goes away.
-  TAP=$(adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 | python3 -c "
+  TAP=$(adb logcat -d -v raw -s ShieldTrace:I | grep '^C [0-9]* [0-9]' | tail -1 | python3 -c "
 import sys
 line = sys.stdin.read().split(' P ')[0].split(' ', 2)
 rs = [list(map(int, r.split(','))) for r in (line[2] if len(line) > 2 else '').split(';') if r.count(',') == 3]
@@ -112,22 +129,6 @@ for l, t, r, b in rs:
     adb exec-out screencap -p > "$OUT/$1-after-show.png"
     adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 >> "$OUT/run-notes.txt"
   fi
-  # Measured pass without screen recording: with no GPU the video encoder eats the CPU
-  # that the app and the shield need, and nothing would behave like on a phone.
-  gestures
-  health "$1 measured"
-  # Second pass for the video only (markers prefixed "video" are not counted).
-  adb shell screenrecord --bit-rate 4000000 --time-limit 60 /sdcard/$1.mp4 &
-  REC=$!
-  sleep 1
-  mark video
-  adb shell input swipe $(X 540) $(Y 1800) $(X 540) $(Y 900) 1500; sleep 2.5
-  adb shell input swipe $(X 540) $(Y 2000) $(X 540) $(Y 500) 80; sleep 4
-  for i in 1 2 3; do swipe 1900 900 120; sleep 1.2; done
-  sleep 2
-  adb shell pkill -INT screenrecord; sleep 3; kill $REC 2>/dev/null
-  timeout 60 adb pull /sdcard/$1.mp4 "$OUT/$1.mp4"
-  mark end
   adb shell am force-stop dev.mwkov.shieldtest
 }
 
