@@ -131,6 +131,10 @@ for l, t, r, b in rs:
     adb exec-out screencap -p > "$OUT/$1-after-show.png"
     adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 >> "$OUT/run-notes.txt"
   fi
+  # Recents: the app's card is a picture of the screen; it should be covered.
+  adb shell input keyevent KEYCODE_APP_SWITCH; sleep 3
+  adb exec-out screencap -p > "$OUT/$1-recents.png"
+  adb shell input keyevent KEYCODE_HOME; sleep 1
   adb shell am force-stop dev.mwkov.shieldtest
 }
 

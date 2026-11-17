@@ -126,6 +126,12 @@ public class ShieldService extends AccessibilityService {
     private final List<View> showButtons = new ArrayList<>();
     private final List<Cover> showFor = new ArrayList<>();
     private final List<Rect> showAt = new ArrayList<>();
+    private volatile long lastStopAt;   // when the last scroll was seen to stop
+    private boolean gliding;
+    private final Choreographer.FrameCallback glideFrame = t -> {
+        gliding = false;
+        render();
+    };
     private Cover confirming;    // first tap on its Show button, waiting for the second
     private long confirmUntil;
     // Where the text sits inside its item (see coverFor), most recent 256.
@@ -153,6 +159,14 @@ public class ShieldService extends AccessibilityService {
     private boolean armed;
     private boolean framesRunning;
     private String lastPkg = "";
+    private String lastAppPkg = "";
+    // package -> when a cover on it was last drawn (main thread)
+    private final java.util.HashMap<String, Long> spoilerSeen = new java.util.HashMap<>();
+    // apps whose Recents card still shows spoilers (read by reader threads)
+    private final Set<String> leftWithSpoilers = ConcurrentHashMap.newKeySet();
+    private final java.util.Map<String, Boolean> appCache = new ConcurrentHashMap<>();
+    private final java.util.Map<String, String> labelCache = new ConcurrentHashMap<>();
+    private volatile String homePkg;
     private String lastScreen = "";
     private int fingerDowns;
     private String dbgScan = "scan: -";
@@ -169,6 +183,24 @@ public class ShieldService extends AccessibilityService {
         float offX, offY;        // the item's own corner relative to r's corner
         String words;            // what matched, shown on the cover ("jason")
         String key;              // the covered text: revealing it is remembered by this
+        String pkg;              // app it is in
+        float glideX, glideY;    // drawn this far from r, shrinking to 0 (see applyRead)
+        long glideAt;
+
+        float glideNowX(long now) {
+            return glideX * glideLeft(now);
+        }
+
+        float glideNowY(long now) {
+            return glideY * glideLeft(now);
+        }
+
+        float glideLeft(long now) {
+            float t = (now - glideAt) / 150f;
+            if (glideAt == 0 || t >= 1) return 0;
+            return (1 - t) * (1 - t);
+        }
+        boolean recents;         // an app's card in Recents, not text
 
         Cover(RectF r, Rect clip, long seq) {
             this.r = r;
@@ -424,22 +456,40 @@ public class ShieldService extends AccessibilityService {
             } else if (eventHandler != null) {
                 eventHandler.post(() -> resolveScroll(copy, arrived, key, true));
             }
-        } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                && isNewScreen(event)) {
-            // New screen: tracking from the old one no longer applies.
-            trackers.clear();
-            sources.clear();
-            shifts.clear();
-            deepAreas.clear();
-            forceDeep = true;
-            armed = false;
+        } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             CharSequence pk = event.getPackageName();
             String pkg = pk == null ? "" : pk.toString();
-            if (!pkg.equals(lastPkg)) {
-                lastPkg = pkg;
-                covers = new ArrayList<>();   // different app: old covers mean nothing
+            if (!pkg.equals(lastPkg) && !pkg.isEmpty()) {
+                // Leaving an app: its card in Recents shows the screen as it was, so remember
+                // whether spoilers were covered on it right then.
+                Long seen = spoilerSeen.get(lastPkg);
+                if (seen != null && SystemClock.uptimeMillis() - seen < 2000) {
+                    leftWithSpoilers.add(lastPkg);
+                } else if (isApp(pkg) || isApp(lastPkg)) {
+                    leftWithSpoilers.remove(lastPkg);
+                }
             }
-            render();
+            // The shade, the screenshot preview, Recents and other system layers come and go
+            // on top of the app: they are not a new screen, and the covers under them stay.
+            if (isApp(pkg) && isNewScreen(event)) {
+                // New screen: tracking from the old one no longer applies.
+                trackers.clear();
+                sources.clear();
+                shifts.clear();
+                deepAreas.clear();
+                forceDeep = true;
+                armed = false;
+                if (!pkg.equals(lastAppPkg)) {
+                    lastAppPkg = pkg;
+                    leftWithSpoilers.remove(pkg);   // back in it: its card gets a new picture
+                    // different app: its covers go (others' are dropped with their windows)
+                    List<Cover> keep = new ArrayList<>();
+                    for (Cover c : covers) if (c.recents) keep.add(c);
+                    covers = keep;
+                }
+                render();
+            }
+            if (!pkg.isEmpty()) lastPkg = pkg;
         }
         scheduleScan(THROTTLE_MS);
     }
@@ -463,6 +513,42 @@ public class ShieldService extends AccessibilityService {
      * page updating its title. Only a different screen (another activity, dialog or app)
      * resets tracking; resetting on every one of these lost all tracking mid-scroll.
      */
+    /** A normal app you open from the launcher (not system UI, not the home screen). */
+    private boolean isApp(String pkg) {
+        if (pkg == null || pkg.isEmpty() || pkg.equals(getPackageName())) return false;
+        Boolean b = appCache.get(pkg);
+        if (b == null) {
+            b = !pkg.equals(home()) && !pkg.equals("com.android.systemui")
+                    && getPackageManager().getLaunchIntentForPackage(pkg) != null;
+            appCache.put(pkg, b);
+        }
+        return b;
+    }
+
+    private String home() {
+        if (homePkg == null) {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_MAIN)
+                    .addCategory(android.content.Intent.CATEGORY_HOME);
+            android.content.pm.ResolveInfo r = getPackageManager().resolveActivity(i, 0);
+            homePkg = r == null || r.activityInfo == null ? "" : r.activityInfo.packageName;
+        }
+        return homePkg;
+    }
+
+    private String label(String pkg) {
+        String l = labelCache.get(pkg);
+        if (l == null) {
+            try {
+                android.content.pm.PackageManager pm = getPackageManager();
+                l = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString().trim();
+            } catch (Exception e) {
+                l = "";
+            }
+            labelCache.put(pkg, l);
+        }
+        return l;
+    }
+
     private boolean isNewScreen(AccessibilityEvent e) {
         int changes = Build.VERSION.SDK_INT >= 28 ? e.getContentChangeTypes() : 0;
         String what = e.getPackageName() + "/" + e.getClassName();
@@ -653,6 +739,7 @@ public class ShieldService extends AccessibilityService {
         if (scrolling && !anyMoving) {
             scrolling = false;
             forceDeep = true;
+            lastStopAt = now;
             if (trace) android.util.Log.i("ShieldTrace", "Z " + now + " still");
             scheduleScan(0);
         }
@@ -1010,6 +1097,13 @@ public class ShieldService extends AccessibilityService {
                 if (!known) rd.deepAreas.add(new Rect(container));
             }
 
+            if (!leftWithSpoilers.isEmpty() && visible) {
+                Cover card = recentsCard(rd, node, container);
+                if (card != null) {
+                    rd.found.add(card);
+                    return;
+                }
+            }
             CharSequence hitText = null;
             String words = null;
             if (!node.isEditable()) {
@@ -1041,6 +1135,8 @@ public class ShieldService extends AccessibilityService {
                 if (c != null) {
                     c.words = words;
                     c.key = key;
+                    CharSequence np = node.getPackageName();
+                    c.pkg = np == null ? null : np.toString();
                     rd.found.add(c);
                 }
                 return; // everything inside is covered already
@@ -1190,6 +1286,63 @@ public class ShieldService extends AccessibilityService {
         if (s.length() > 300) s = s.substring(0, 300) + "...";
         sb.append(' ').append(name).append("=\"").append(s).append('"');
         if (p != null && matchWords(p, v) != null) sb.append(" <MATCH>");
+    }
+
+    /**
+     * In Recents (or any system/home screen), an app's card is a picture of how the app looked
+     * when you left it, which the shield can't read. If that app had spoilers covered at that
+     * moment, cover its whole card: found by the app's name on the card.
+     */
+    private Cover recentsCard(Read rd, AccessibilityNodeInfo node, Rect container) {
+        CharSequence np = node.getPackageName();
+        String pkg = np == null ? "" : np.toString();
+        if (!pkg.equals(home()) && !pkg.equals("com.android.systemui")) return null;
+        CharSequence t = node.getText();
+        if (t == null || t.length() == 0) t = node.getContentDescription();
+        if (t == null || t.length() == 0 || t.length() > 60) return null;
+        String name = t.toString().trim();
+        String app = null;
+        for (String a : leftWithSpoilers) {
+            String l = label(a);
+            if (!l.isEmpty() && (name.equalsIgnoreCase(l) || name.toLowerCase(java.util.Locale.ROOT)
+                    .startsWith(l.toLowerCase(java.util.Locale.ROOT) + ","))) {
+                app = a;
+                break;
+            }
+        }
+        if (app == null) return null;
+        if (revealed.contains("recents:" + app)) return null;
+        Rect r = new Rect();
+        node.getBoundsInScreen(r);
+        if (r.isEmpty() || rd.screen.isEmpty()) return null;
+        int labelH = r.height();
+        long screenArea = (long) rd.screen.width() * rd.screen.height();
+        // The name is on the card's header: go up to the card (picture + header).
+        AccessibilityNodeInfo cur = node;
+        Rect b = new Rect(r);
+        for (int i = 0; i < 5 && b.height() < Math.max(4 * labelH, rd.screen.height() / 5); i++) {
+            AccessibilityNodeInfo parent = cur.getParent();
+            if (parent == null) break;
+            Rect pb = new Rect();
+            parent.getBoundsInScreen(pb);
+            if ((long) pb.width() * pb.height() > screenArea * 0.8) break;   // that's everything
+            b.set(pb);
+            cur = parent;
+        }
+        if (b.height() < 3 * labelH) return null;   // didn't find a card around it
+        Cover c = new Cover(new RectF(b), container == null ? null : new Rect(container),
+                rd.startSeq);
+        c.window = node.getWindowId();
+        c.recents = true;
+        c.pkg = pkg;
+        c.words = "spoilers in " + label(app);
+        c.key = "recents:" + app;
+        c.node = container == null ? null : cur;
+        if (c.node != null) {
+            c.offX = b.left - c.r.left;
+            c.offY = b.top - c.r.top;
+        }
+        return c;
     }
 
     /** The distinct words that matched ("jason · vice city"), or null for none. */
@@ -1510,20 +1663,32 @@ public class ShieldService extends AccessibilityService {
         // During movement, keep covers that are already being tracked smoothly instead of
         // swapping in copies measured at a slightly different moment (no jitter), unless the
         // read shows one is clearly off.
+        // A read that began before the scroll stopped measured things mid-movement: it can
+        // say what is there, but not exactly where. Keep the covers where tracking put them
+        // and let the fresh read after the stop place them (this was the "jumping for a couple
+        // of seconds after I stop scrolling").
+        // A fresh read that does move a cover glides it there (~150 ms) instead of snapping.
         boolean anyMoving = false;
         for (Tracker t : trackers) if (t.moving) anyMoving = true;
-        if (anyMoving) {
-            for (int i = 0; i < found.size(); i++) {
-                Cover f = found.get(i);
-                if (f.node == null) continue;
-                for (Cover old : scope) {
-                    if (old.node == null || !old.node.equals(f.node)) continue;
-                    if (Math.abs(old.r.top - f.r.top) <= 48 && Math.abs(old.r.left - f.r.left) <= 48
-                            && old.r.width() >= f.r.width() * 0.8f) {
-                        found.set(i, old);
-                    }
-                    break;
+        boolean midMove = rd.start <= lastStopAt || anyMoving;
+        long nowA = SystemClock.uptimeMillis();
+        for (int i = 0; i < found.size(); i++) {
+            Cover f = found.get(i);
+            if (f.node == null) continue;
+            for (Cover old : scope) {
+                if (old.node == null || !old.node.equals(f.node)) continue;
+                float dx = old.r.left - f.r.left, dy = old.r.top - f.r.top;
+                boolean close = Math.abs(dx) <= 48 && Math.abs(dy) <= 48
+                        && old.r.width() >= f.r.width() * 0.8f;
+                if (midMove && (close || !anyMoving)) {
+                    found.set(i, old);
+                } else if (!midMove && (Math.abs(dx) >= 2 || Math.abs(dy) >= 2)
+                        && Math.abs(dx) < 400 && Math.abs(dy) < 400) {
+                    f.glideX = old.glideNowX(nowA) + dx;
+                    f.glideY = old.glideNowY(nowA) + dy;
+                    f.glideAt = nowA;
                 }
+                break;
             }
         }
         // Covers placed by this read: re-reads already on their way measured against the old
@@ -1703,8 +1868,11 @@ public class ShieldService extends AccessibilityService {
         boolean still = !scrolling;
         if (enabled) {
             long now = SystemClock.uptimeMillis();
+            boolean anyGlide = false;
             for (Cover c : covers) {
-                float top = c.r.top, bottom = c.r.bottom;
+                float gx = c.glideNowX(now), gy = c.glideNowY(now);
+                if (gx != 0 || gy != 0) anyGlide = true;
+                float top = c.r.top + gy, bottom = c.r.bottom + gy;
                 // Stretch towards where the content is heading, by its speed and by how
                 // unsure the tracking is right now, so a small error never shows text.
                 for (Tracker t : trackers) {
@@ -1720,13 +1888,18 @@ public class ShieldService extends AccessibilityService {
                     bottom += unsure;
                     break;
                 }
-                Rect r = new Rect(Math.round(c.r.left), Math.round(top),
-                        Math.round(c.r.right), Math.round(bottom));
+                Rect r = new Rect(Math.round(c.r.left + gx), Math.round(top),
+                        Math.round(c.r.right + gx), Math.round(bottom));
                 if (c.clip != null && !r.intersect(c.clip)) continue;
                 if (!screenMain.isEmpty() && !r.intersect(screenMain)) continue;
                 drawn.add(r);
                 drawnCovers.add(c);
+                if (c.pkg != null && !c.recents) spoilerSeen.put(c.pkg, now);
                 labels.add(c.words);
+            }
+            if (anyGlide && !gliding) {   // keep drawing until the glides finish
+                gliding = true;
+                Choreographer.getInstance().postFrameCallback(glideFrame);
             }
             if (edgeCurtain && armed) {
                 for (Tracker t : trackers) {

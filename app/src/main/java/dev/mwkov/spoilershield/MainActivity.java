@@ -63,6 +63,50 @@ public class MainActivity extends Activity {
         col.addView(title);
         col.addView(text("Covers anything on screen that matches your keywords.", 14, MUTED));
 
+        // --- Update (hidden until a newer version is out)
+        LinearLayout upd = card(col);
+        upd.setVisibility(android.view.View.GONE);
+        TextView updText = text("", 15, TEXT);
+        updText.setTypeface(Typeface.DEFAULT_BOLD);
+        upd.addView(updText);
+        Button updBtn = button("Update now");
+        upd.addView(updBtn, matchWrap(dp(10)));
+        new Thread(() -> {
+            String[] v = Updater.latest();
+            if (v == null) return;
+            long code;
+            try {
+                code = Long.parseLong(v[0]);
+            } catch (NumberFormatException e) {
+                return;
+            }
+            if (code <= Updater.installedCode(this)) return;
+            runOnUiThread(() -> {
+                updText.setText("Version " + v[1] + " is ready");
+                upd.setVisibility(android.view.View.VISIBLE);
+            });
+        }).start();
+        updBtn.setOnClickListener(x -> {
+            if (!Updater.canInstall(this)) {
+                Toast.makeText(this, "Allow installing from Spoiler Shield, then come back and "
+                        + "tap Update now again.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            updBtn.setEnabled(false);
+            new Thread(() -> {
+                try {
+                    Updater.install(this, m -> runOnUiThread(() -> updBtn.setText(m)));
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        updBtn.setEnabled(true);
+                        updBtn.setText("Update now");
+                        Toast.makeText(this, "Update failed: " + e.getMessage(),
+                                Toast.LENGTH_LONG).show();
+                    });
+                }
+            }).start();
+        });
+
         // --- Status card
         LinearLayout statusCard = card(col);
         status = text("", 16, TEXT);

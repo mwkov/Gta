@@ -28,6 +28,9 @@ jobs:
           gradle :app:testReleaseUnitTest :app:assembleRelease --no-daemon --stacktrace
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk out/SpoilerShield.apk
+          # read by the app's "Update now" card: "<versionCode> <versionName>"
+          echo "$(grep -m1 versionCode app/build.gradle | awk '{print $2}') $(grep -m1 versionName app/build.gradle | sed "s/.*'\(.*\)'.*/\1/")" > out/version.txt
+          cat out/version.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -39,4 +42,6 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: Spoiler Shield build ${{ github.run_number }}
-          files: out/SpoilerShield.apk
+          files: |
+            out/SpoilerShield.apk
+            out/version.txt
