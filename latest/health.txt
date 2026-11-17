@@ -1,9 +1,9 @@
-== start pid=[2661] 103.29 267.11
+== start pid=[2754] 136.78 269.96
 "main" prio=5 tid=1 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72430f48 self=0x7b032af14be0
-  | sysTid=2661 nice=0 cgrp=foreground sched=0/0 handle=0x7b05cd1724f8
-  | state=S schedstat=( 39957732 22920038 133 ) utm=1 stm=2 core=1 HZ=100
-  | stack=0x7ffc6f7ab000-0x7ffc6f7ad000 stackSize=8188KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72e46c58 self=0x7b8dcaa72be0
+  | sysTid=2754 nice=0 cgrp=foreground sched=0/0 handle=0x7b907e4bc4f8
+  | state=S schedstat=( 54206160 46802081 152 ) utm=1 stm=4 core=2 HZ=100
+  | stack=0x7ffdbd7b3000-0x7ffdbd7b5000 stackSize=8188KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -16,10 +16,10 @@
   at java.lang.reflect.Method.invoke(Native method)
 --
 "shield-scan" prio=5 tid=18 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9cfa0 self=0x7b032af550f0
-  | sysTid=2682 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0a98cf0
-  | state=S schedstat=( 1999626 168942 14 ) utm=0 stm=0 core=0 HZ=100
-  | stack=0x7b02a0996000-0x7b02a0998000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2af38 self=0x7b8dcaab1520
+  | sysTid=2776 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d62801cf0
+  | state=S schedstat=( 9044480 5620853 12 ) utm=0 stm=0 core=2 HZ=100
+  | stack=0x7b8d626ff000-0x7b8d62701000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -31,10 +31,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-event" prio=5 tid=19 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9d080 self=0x7b032af53520
-  | sysTid=2683 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a098fcf0
-  | state=S schedstat=( 57295 802748 3 ) utm=0 stm=0 core=1 HZ=100
-  | stack=0x7b02a088d000-0x7b02a088f000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2b018 self=0x7b8dcaaaf950
+  | sysTid=2777 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d626f8cf0
+  | state=S schedstat=( 294217 0 2 ) utm=0 stm=0 core=2 HZ=100
+  | stack=0x7b8d625f6000-0x7b8d625f8000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -46,10 +46,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-0" prio=5 tid=20 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9d528 self=0x7b032af51950
-  | sysTid=2684 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0886cf0
-  | state=S schedstat=( 0 165417 1 ) utm=0 stm=0 core=2 HZ=100
-  | stack=0x7b02a0784000-0x7b02a0786000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2b4c0 self=0x7b8dcaab30f0
+  | sysTid=2778 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d625efcf0
+  | state=S schedstat=( 191891 0 1 ) utm=0 stm=0 core=3 HZ=100
+  | stack=0x7b8d624ed000-0x7b8d624ef000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -61,10 +61,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-1" prio=5 tid=21 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9d668 self=0x7b032af5a460
-  | sysTid=2685 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a077dcf0
-  | state=S schedstat=( 0 0 1 ) utm=0 stm=0 core=2 HZ=100
-  | stack=0x7b02a067b000-0x7b02a067d000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2b600 self=0x7b8dcaab4cc0
+  | sysTid=2779 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d624e6cf0
+  | state=S schedstat=( 160578 0 1 ) utm=0 stm=0 core=3 HZ=100
+  | stack=0x7b8d623e4000-0x7b8d623e6000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -77,10 +77,10 @@
 
 --
 "shield-read" daemon prio=5 tid=23 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e856d8 self=0x7b032af5dc00
-  | sysTid=2687 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0577cf0
-  | state=S schedstat=( 5312496 37753436 63 ) utm=0 stm=0 core=2 HZ=100
-  | stack=0x7b02a0475000-0x7b02a0477000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e05ac8 self=0x7b8dcaabbc00
+  | sysTid=2783 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d620cecf0
+  | state=S schedstat=( 3076237 10943391 67 ) utm=0 stm=0 core=2 HZ=100
+  | stack=0x7b8d61fcc000-0x7b8d61fce000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -93,10 +93,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=24 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e85908 self=0x7b032af58890
-  | sysTid=2688 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a046ecf0
-  | state=S schedstat=( 3030334 25661664 54 ) utm=0 stm=0 core=0 HZ=100
-  | stack=0x7b02a036c000-0x7b02a036e000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e056d8 self=0x7b8dcaaba030
+  | sysTid=2781 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d622e0cf0
+  | state=S schedstat=( 2423595 11357632 40 ) utm=0 stm=0 core=2 HZ=100
+  | stack=0x7b8d621de000-0x7b8d621e0000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -109,10 +109,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=25 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e85ac8 self=0x7b032af64b40
-  | sysTid=2689 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0365cf0
-  | state=S schedstat=( 1830641 34765354 38 ) utm=0 stm=0 core=2 HZ=100
-  | stack=0x7b02a0263000-0x7b02a0265000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e05908 self=0x7b8dcaab8460
+  | sysTid=2782 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d621d7cf0
+  | state=S schedstat=( 7467589 6186144 45 ) utm=0 stm=0 core=2 HZ=100
+  | stack=0x7b8d620d5000-0x7b8d620d7000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -128,12 +128,12 @@
      Binding services:{}
      Crashed services:{}
      Client list info:{
-== list shown pid=[2661] 110.88 288.30
+== list shown pid=[2754] 145.52 287.24
 "main" prio=5 tid=1 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72430f48 self=0x7b032af14be0
-  | sysTid=2661 nice=0 cgrp=foreground sched=0/0 handle=0x7b05cd1724f8
-  | state=S schedstat=( 70194100 61249747 434 ) utm=2 stm=4 core=2 HZ=100
-  | stack=0x7ffc6f7ab000-0x7ffc6f7ad000 stackSize=8188KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72e46c58 self=0x7b8dcaa72be0
+  | sysTid=2754 nice=0 cgrp=foreground sched=0/0 handle=0x7b907e4bc4f8
+  | state=S schedstat=( 149831897 178369013 470 ) utm=5 stm=9 core=0 HZ=100
+  | stack=0x7ffdbd7b3000-0x7ffdbd7b5000 stackSize=8188KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -146,10 +146,10 @@
   at java.lang.reflect.Method.invoke(Native method)
 --
 "shield-scan" prio=5 tid=18 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9cfa0 self=0x7b032af550f0
-  | sysTid=2682 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0a98cf0
-  | state=S schedstat=( 6027696 7605244 53 ) utm=0 stm=0 core=2 HZ=100
-  | stack=0x7b02a0996000-0x7b02a0998000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2af38 self=0x7b8dcaab1520
+  | sysTid=2776 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d62801cf0
+  | state=S schedstat=( 14776178 27882112 56 ) utm=0 stm=1 core=2 HZ=100
+  | stack=0x7b8d626ff000-0x7b8d62701000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -161,10 +161,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-event" prio=5 tid=19 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9d080 self=0x7b032af53520
-  | sysTid=2683 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a098fcf0
-  | state=S schedstat=( 224757 6184691 9 ) utm=0 stm=0 core=3 HZ=100
-  | stack=0x7b02a088d000-0x7b02a088f000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2b018 self=0x7b8dcaaaf950
+  | sysTid=2777 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d626f8cf0
+  | state=S schedstat=( 738734 2480238 9 ) utm=0 stm=0 core=1 HZ=100
+  | stack=0x7b8d625f6000-0x7b8d625f8000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -176,10 +176,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-0" prio=5 tid=20 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9d528 self=0x7b032af51950
-  | sysTid=2684 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0886cf0
-  | state=S schedstat=( 15038894 5220851 153 ) utm=0 stm=0 core=1 HZ=100
-  | stack=0x7b02a0784000-0x7b02a0786000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2b4c0 self=0x7b8dcaab30f0
+  | sysTid=2778 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d625efcf0
+  | state=S schedstat=( 45568940 17651191 139 ) utm=0 stm=4 core=0 HZ=100
+  | stack=0x7b8d624ed000-0x7b8d624ef000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -191,10 +191,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-1" prio=5 tid=21 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c9d668 self=0x7b032af5a460
-  | sysTid=2685 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a077dcf0
-  | state=S schedstat=( 14253330 94511 147 ) utm=0 stm=0 core=0 HZ=100
-  | stack=0x7b02a067b000-0x7b02a067d000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12c2b600 self=0x7b8dcaab4cc0
+  | sysTid=2779 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d624e6cf0
+  | state=S schedstat=( 39676048 7552009 137 ) utm=2 stm=1 core=3 HZ=100
+  | stack=0x7b8d623e4000-0x7b8d623e6000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -207,10 +207,10 @@
 
 --
 "shield-read" daemon prio=5 tid=23 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e856d8 self=0x7b032af5dc00
-  | sysTid=2687 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0577cf0
-  | state=S schedstat=( 9732574 57581342 144 ) utm=0 stm=0 core=1 HZ=100
-  | stack=0x7b02a0475000-0x7b02a0477000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e05ac8 self=0x7b8dcaabbc00
+  | sysTid=2783 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d620cecf0
+  | state=S schedstat=( 43153672 186382501 232 ) utm=1 stm=3 core=0 HZ=100
+  | stack=0x7b8d61fcc000-0x7b8d61fce000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -223,10 +223,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=24 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e85908 self=0x7b032af58890
-  | sysTid=2688 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a046ecf0
-  | state=S schedstat=( 15781330 45730008 208 ) utm=1 stm=0 core=1 HZ=100
-  | stack=0x7b02a036c000-0x7b02a036e000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e056d8 self=0x7b8dcaaba030
+  | sysTid=2781 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d622e0cf0
+  | state=S schedstat=( 37361651 220935038 156 ) utm=1 stm=2 core=0 HZ=100
+  | stack=0x7b8d621de000-0x7b8d621e0000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -239,10 +239,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=25 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e85ac8 self=0x7b032af64b40
-  | sysTid=2689 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0365cf0
-  | state=S schedstat=( 12329170 50904811 198 ) utm=0 stm=0 core=2 HZ=100
-  | stack=0x7b02a0263000-0x7b02a0265000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e05908 self=0x7b8dcaab8460
+  | sysTid=2782 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d621d7cf0
+  | state=S schedstat=( 29566045 50427361 177 ) utm=0 stm=2 core=0 HZ=100
+  | stack=0x7b8d620d5000-0x7b8d620d7000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -258,12 +258,12 @@
      Binding services:{}
      Crashed services:{}
      Client list info:{
-== list measured pid=[2661] 140.52 362.62
+== list measured pid=[2754] 176.81 344.42
 "main" prio=5 tid=1 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72430f48 self=0x7b032af14be0
-  | sysTid=2661 nice=0 cgrp=foreground sched=0/0 handle=0x7b05cd1724f8
-  | state=S schedstat=( 379721285 1112966498 2992 ) utm=21 stm=16 core=0 HZ=100
-  | stack=0x7ffc6f7ab000-0x7ffc6f7ad000 stackSize=8188KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72e46c58 self=0x7b8dcaa72be0
+  | sysTid=2754 nice=0 cgrp=foreground sched=0/0 handle=0x7b907e4bc4f8
+  | state=S schedstat=( 755378501 2464421889 2784 ) utm=33 stm=41 core=3 HZ=100
+  | stack=0x7ffdbd7b3000-0x7ffdbd7b5000 stackSize=8188KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -276,10 +276,10 @@
   at java.lang.reflect.Method.invoke(Native method)
 --
 "shield-scan" prio=5 tid=18 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80678 self=0x7b032af550f0
-  | sysTid=2682 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0a98cf0
-  | state=S schedstat=( 53204993 219961382 416 ) utm=2 stm=2 core=1 HZ=100
-  | stack=0x7b02a0996000-0x7b02a0998000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c0680 self=0x7b8dcaab1520
+  | sysTid=2776 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d62801cf0
+  | state=S schedstat=( 90046842 633836469 453 ) utm=3 stm=5 core=2 HZ=100
+  | stack=0x7b8d626ff000-0x7b8d62701000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -291,10 +291,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-event" prio=5 tid=19 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80758 self=0x7b032af53520
-  | sysTid=2683 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a098fcf0
-  | state=S schedstat=( 2105356 90041439 75 ) utm=0 stm=0 core=1 HZ=100
-  | stack=0x7b02a088d000-0x7b02a088f000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c0760 self=0x7b8dcaaaf950
+  | sysTid=2777 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d626f8cf0
+  | state=S schedstat=( 8134805 169296425 104 ) utm=0 stm=0 core=0 HZ=100
+  | stack=0x7b8d625f6000-0x7b8d625f8000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -306,10 +306,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-0" prio=5 tid=20 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80838 self=0x7b032af51950
-  | sysTid=2684 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0886cf0
-  | state=S schedstat=( 46745231 431774644 661 ) utm=2 stm=1 core=3 HZ=100
-  | stack=0x7b02a0784000-0x7b02a0786000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c0e80 self=0x7b8dcaab30f0
+  | sysTid=2778 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d625efcf0
+  | state=S schedstat=( 68466122 235478279 286 ) utm=1 stm=5 core=2 HZ=100
+  | stack=0x7b8d624ed000-0x7b8d624ef000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -321,10 +321,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-1" prio=5 tid=21 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80918 self=0x7b032af5a460
-  | sysTid=2685 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a077dcf0
-  | state=S schedstat=( 45385955 352553585 663 ) utm=2 stm=2 core=3 HZ=100
-  | stack=0x7b02a067b000-0x7b02a067d000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c0f60 self=0x7b8dcaab4cc0
+  | sysTid=2779 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d624e6cf0
+  | state=S schedstat=( 65006854 239383233 283 ) utm=3 stm=3 core=2 HZ=100
+  | stack=0x7b8d623e4000-0x7b8d623e6000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -337,10 +337,10 @@
 
 --
 "shield-read" daemon prio=5 tid=23 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80a70 self=0x7b032af5dc00
-  | sysTid=2687 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0577cf0
-  | state=S schedstat=( 98410294 623468972 1580 ) utm=5 stm=4 core=3 HZ=100
-  | stack=0x7b02a0475000-0x7b02a0477000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c10b8 self=0x7b8dcaabbc00
+  | sysTid=2783 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d620cecf0
+  | state=S schedstat=( 191431437 1067564173 1682 ) utm=10 stm=8 core=3 HZ=100
+  | stack=0x7b8d61fcc000-0x7b8d61fce000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -353,10 +353,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=24 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80be0 self=0x7b032af58890
-  | sysTid=2688 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a046ecf0
-  | state=S schedstat=( 111329839 528763065 2058 ) utm=5 stm=5 core=0 HZ=100
-  | stack=0x7b02a036c000-0x7b02a036e000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c1378 self=0x7b8dcaaba030
+  | sysTid=2781 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d622e0cf0
+  | state=S schedstat=( 171888294 1001495068 1520 ) utm=7 stm=9 core=1 HZ=100
+  | stack=0x7b8d621de000-0x7b8d621e0000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -369,10 +369,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=25 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12e80ca8 self=0x7b032af64b40
-  | sysTid=2689 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0365cf0
-  | state=S schedstat=( 110056877 718051052 1812 ) utm=5 stm=5 core=3 HZ=100
-  | stack=0x7b02a0263000-0x7b02a0265000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x130c2260 self=0x7b8dcaab8460
+  | sysTid=2782 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d621d7cf0
+  | state=S schedstat=( 180476424 920163146 2006 ) utm=8 stm=9 core=0 HZ=100
+  | stack=0x7b8d620d5000-0x7b8d620d7000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -388,12 +388,12 @@
      Binding services:{}
      Crashed services:{}
      Client list info:{
-== web shown pid=[2661] 172.69 416.76
+== web shown pid=[2754] 211.48 393.35
 "main" prio=5 tid=1 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72430f48 self=0x7b032af14be0
-  | sysTid=2661 nice=0 cgrp=foreground sched=0/0 handle=0x7b05cd1724f8
-  | state=S schedstat=( 623556453 3846853081 5016 ) utm=33 stm=28 core=2 HZ=100
-  | stack=0x7ffc6f7ab000-0x7ffc6f7ad000 stackSize=8188KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72e46c58 self=0x7b8dcaa72be0
+  | sysTid=2754 nice=0 cgrp=foreground sched=0/0 handle=0x7b907e4bc4f8
+  | state=S schedstat=( 978197440 4570455352 3821 ) utm=41 stm=56 core=1 HZ=100
+  | stack=0x7ffdbd7b3000-0x7ffdbd7b5000 stackSize=8188KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -406,10 +406,10 @@
   at java.lang.reflect.Method.invoke(Native method)
 --
 "shield-scan" prio=5 tid=18 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f40680 self=0x7b032af550f0
-  | sysTid=2682 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0a98cf0
-  | state=S schedstat=( 102795023 1061065752 740 ) utm=5 stm=4 core=2 HZ=100
-  | stack=0x7b02a0996000-0x7b02a0998000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f80678 self=0x7b8dcaab1520
+  | sysTid=2776 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d62801cf0
+  | state=S schedstat=( 126527670 1383354752 696 ) utm=5 stm=6 core=0 HZ=100
+  | stack=0x7b8d626ff000-0x7b8d62701000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -421,10 +421,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-event" prio=5 tid=19 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f40760 self=0x7b032af53520
-  | sysTid=2683 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a098fcf0
-  | state=S schedstat=( 3318207 222474670 128 ) utm=0 stm=0 core=0 HZ=100
-  | stack=0x7b02a088d000-0x7b02a088f000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f80758 self=0x7b8dcaaaf950
+  | sysTid=2777 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d626f8cf0
+  | state=S schedstat=( 11992036 242444720 145 ) utm=0 stm=0 core=3 HZ=100
+  | stack=0x7b8d625f6000-0x7b8d625f8000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -436,10 +436,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-0" prio=5 tid=20 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f40840 self=0x7b032af51950
-  | sysTid=2684 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0886cf0
-  | state=S schedstat=( 61948530 760679947 923 ) utm=3 stm=2 core=0 HZ=100
-  | stack=0x7b02a0784000-0x7b02a0786000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f80838 self=0x7b8dcaab30f0
+  | sysTid=2778 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d625efcf0
+  | state=S schedstat=( 86916418 558564958 395 ) utm=3 stm=5 core=0 HZ=100
+  | stack=0x7b8d624ed000-0x7b8d624ef000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -451,10 +451,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-1" prio=5 tid=21 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f40920 self=0x7b032af5a460
-  | sysTid=2685 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a077dcf0
-  | state=S schedstat=( 62575589 596638236 917 ) utm=2 stm=3 core=0 HZ=100
-  | stack=0x7b02a067b000-0x7b02a067d000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f80918 self=0x7b8dcaab4cc0
+  | sysTid=2779 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d624e6cf0
+  | state=S schedstat=( 83385069 440565534 384 ) utm=3 stm=4 core=2 HZ=100
+  | stack=0x7b8d623e4000-0x7b8d623e6000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -467,10 +467,10 @@
 
 --
 "shield-read" daemon prio=5 tid=23 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f40a78 self=0x7b032af5dc00
-  | sysTid=2687 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0577cf0
-  | state=S schedstat=( 156338695 1347654922 2611 ) utm=9 stm=6 core=3 HZ=100
-  | stack=0x7b02a0475000-0x7b02a0477000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f80a70 self=0x7b8dcaabbc00
+  | sysTid=2783 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d620cecf0
+  | state=S schedstat=( 259583469 2020037708 2320 ) utm=14 stm=11 core=3 HZ=100
+  | stack=0x7b8d61fcc000-0x7b8d61fce000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -483,10 +483,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=24 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f423b8 self=0x7b032af58890
-  | sysTid=2688 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a046ecf0
-  | state=S schedstat=( 202355085 1418021329 3466 ) utm=9 stm=10 core=0 HZ=100
-  | stack=0x7b02a036c000-0x7b02a036e000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f81e50 self=0x7b8dcaaba030
+  | sysTid=2781 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d622e0cf0
+  | state=S schedstat=( 476472375 2140738089 2982 ) utm=21 stm=26 core=3 HZ=100
+  | stack=0x7b8d621de000-0x7b8d621e0000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -499,10 +499,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=25 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f429b0 self=0x7b032af64b40
-  | sysTid=2689 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0365cf0
-  | state=S schedstat=( 201076857 1561347249 3538 ) utm=8 stm=11 core=2 HZ=100
-  | stack=0x7b02a0263000-0x7b02a0265000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12f82388 self=0x7b8dcaab8460
+  | sysTid=2782 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d621d7cf0
+  | state=S schedstat=( 262402449 1541832294 2630 ) utm=13 stm=12 core=3 HZ=100
+  | stack=0x7b8d620d5000-0x7b8d620d7000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -518,12 +518,12 @@
      Binding services:{}
      Crashed services:{}
      Client list info:{
-== web measured pid=[2661] 202.49 482.74
+== web measured pid=[2754] 243.60 430.48
 "main" prio=5 tid=1 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72430f48 self=0x7b032af14be0
-  | sysTid=2661 nice=0 cgrp=foreground sched=0/0 handle=0x7b05cd1724f8
-  | state=S schedstat=( 862078456 4960268306 7023 ) utm=47 stm=38 core=2 HZ=100
-  | stack=0x7ffc6f7ab000-0x7ffc6f7ad000 stackSize=8188KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x72e46c58 self=0x7b8dcaa72be0
+  | sysTid=2754 nice=0 cgrp=foreground sched=0/0 handle=0x7b907e4bc4f8
+  | state=S schedstat=( 1420245444 7178286384 6107 ) utm=61 stm=80 core=3 HZ=100
+  | stack=0x7ffdbd7b3000-0x7ffdbd7b5000 stackSize=8188KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -536,10 +536,10 @@
   at java.lang.reflect.Method.invoke(Native method)
 --
 "shield-scan" prio=5 tid=18 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0680 self=0x7b032af550f0
-  | sysTid=2682 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0a98cf0
-  | state=S schedstat=( 137584863 1456137222 1137 ) utm=7 stm=6 core=2 HZ=100
-  | stack=0x7b02a0996000-0x7b02a0998000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13000680 self=0x7b8dcaab1520
+  | sysTid=2776 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d62801cf0
+  | state=S schedstat=( 254263572 2112791449 1279 ) utm=9 stm=15 core=3 HZ=100
+  | stack=0x7b8d626ff000-0x7b8d62701000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -551,10 +551,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-event" prio=5 tid=19 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0760 self=0x7b032af53520
-  | sysTid=2683 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a098fcf0
-  | state=S schedstat=( 5313125 278445877 216 ) utm=0 stm=0 core=1 HZ=100
-  | stack=0x7b02a088d000-0x7b02a088f000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13000760 self=0x7b8dcaaaf950
+  | sysTid=2777 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d626f8cf0
+  | state=S schedstat=( 18831682 458299253 246 ) utm=1 stm=0 core=3 HZ=100
+  | stack=0x7b8d625f6000-0x7b8d625f8000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -566,10 +566,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-0" prio=5 tid=20 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0840 self=0x7b032af51950
-  | sysTid=2684 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0886cf0
-  | state=S schedstat=( 78099837 1250728978 1284 ) utm=4 stm=3 core=1 HZ=100
-  | stack=0x7b02a0784000-0x7b02a0786000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13000840 self=0x7b8dcaab30f0
+  | sysTid=2778 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d625efcf0
+  | state=S schedstat=( 110726929 1002438364 610 ) utm=4 stm=6 core=2 HZ=100
+  | stack=0x7b8d624ed000-0x7b8d624ef000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -581,10 +581,10 @@
   at android.os.HandlerThread.run(HandlerThread.java:67)
 
 "shield-poll-1" prio=5 tid=21 Native
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0920 self=0x7b032af5a460
-  | sysTid=2685 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a077dcf0
-  | state=S schedstat=( 78960255 1119701484 1282 ) utm=4 stm=3 core=0 HZ=100
-  | stack=0x7b02a067b000-0x7b02a067d000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13000920 self=0x7b8dcaab4cc0
+  | sysTid=2779 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d624e6cf0
+  | state=S schedstat=( 103191399 1005107568 593 ) utm=4 stm=5 core=1 HZ=100
+  | stack=0x7b8d623e4000-0x7b8d623e6000 stackSize=1035KB
   | held mutexes=
   native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
   native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
@@ -597,10 +597,10 @@
 
 --
 "shield-read" daemon prio=5 tid=23 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0a78 self=0x7b032af5dc00
-  | sysTid=2687 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0577cf0
-  | state=S schedstat=( 277544293 2037984120 4957 ) utm=15 stm=11 core=0 HZ=100
-  | stack=0x7b02a0475000-0x7b02a0477000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13000a78 self=0x7b8dcaabbc00
+  | sysTid=2783 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d620cecf0
+  | state=S schedstat=( 543669947 3278121829 4733 ) utm=26 stm=27 core=0 HZ=100
+  | stack=0x7b8d61fcc000-0x7b8d61fce000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -613,10 +613,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=24 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0be8 self=0x7b032af58890
-  | sysTid=2688 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a046ecf0
-  | state=S schedstat=( 409924598 2278738283 7304 ) utm=15 stm=25 core=1 HZ=100
-  | stack=0x7b02a036c000-0x7b02a036e000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13001ba8 self=0x7b8dcaaba030
+  | sysTid=2781 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d622e0cf0
+  | state=S schedstat=( 973450684 3583715976 5726 ) utm=38 stm=58 core=2 HZ=100
+  | stack=0x7b8d621de000-0x7b8d621e0000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -629,10 +629,10 @@
   at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
 --
 "shield-read" daemon prio=5 tid=25 Waiting
-  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x12fc0cb0 self=0x7b032af64b40
-  | sysTid=2689 nice=0 cgrp=foreground sched=0/0 handle=0x7b02a0365cf0
-  | state=S schedstat=( 354496331 2236582181 6888 ) utm=14 stm=21 core=0 HZ=100
-  | stack=0x7b02a0263000-0x7b02a0265000 stackSize=1035KB
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x13002228 self=0x7b8dcaab8460
+  | sysTid=2782 nice=0 cgrp=foreground sched=0/0 handle=0x7b8d621d7cf0
+  | state=S schedstat=( 738513886 2872578455 5656 ) utm=30 stm=43 core=0 HZ=100
+  | stack=0x7b8d620d5000-0x7b8d620d7000 stackSize=1035KB
   | held mutexes=
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
