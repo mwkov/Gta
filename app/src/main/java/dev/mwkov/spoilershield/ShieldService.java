@@ -468,6 +468,9 @@ public class ShieldService extends AccessibilityService {
                 } else if (isApp(pkg) || isApp(lastPkg)) {
                     leftWithSpoilers.remove(lastPkg);
                 }
+                if (trace) android.util.Log.i("ShieldTrace", "R " + SystemClock.uptimeMillis()
+                        + " " + lastPkg + " -> " + pkg + " left=" + leftWithSpoilers
+                        + " home=" + home() + " app=" + isApp(pkg));
             }
             // The shade, the screenshot preview, Recents and other system layers come and go
             // on top of the app: they are not a new screen, and the covers under them stay.
@@ -529,7 +532,8 @@ public class ShieldService extends AccessibilityService {
         if (homePkg == null) {
             android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_MAIN)
                     .addCategory(android.content.Intent.CATEGORY_HOME);
-            android.content.pm.ResolveInfo r = getPackageManager().resolveActivity(i, 0);
+            android.content.pm.ResolveInfo r = getPackageManager().resolveActivity(i,
+                    android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
             homePkg = r == null || r.activityInfo == null ? "" : r.activityInfo.packageName;
         }
         return homePkg;
@@ -1296,7 +1300,7 @@ public class ShieldService extends AccessibilityService {
     private Cover recentsCard(Read rd, AccessibilityNodeInfo node, Rect container) {
         CharSequence np = node.getPackageName();
         String pkg = np == null ? "" : np.toString();
-        if (!pkg.equals(home()) && !pkg.equals("com.android.systemui")) return null;
+        if (isApp(pkg)) return null;   // only system screens (home, Recents, system UI)
         CharSequence t = node.getText();
         if (t == null || t.length() == 0) t = node.getContentDescription();
         if (t == null || t.length() == 0 || t.length() > 60) return null;
