@@ -91,6 +91,27 @@ run() {   # name activity
   clear_dialogs
   adb shell dumpsys window | grep -m3 "mCurrentFocus\|isn't responding" > "$OUT/$1-focus.txt"
   health "$1 shown"
+  adb exec-out screencap -p > "$OUT/$1-covers.png"
+  # Tap the first cover's "Show" button (same placement as OverlayView.showButton) and check
+  # that the cover goes away.
+  TAP=$(adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 | python3 -c "
+import sys
+line = sys.stdin.read().split(' P ')[0].split(' ', 2)
+rs = [list(map(int, r.split(','))) for r in (line[2] if len(line) > 2 else '').split(';') if r.count(',') == 3]
+d = $(adb shell wm density | tail -1 | sed 's/.*: //' | tr -d '\r') / 160
+for l, t, r, b in rs:
+    h, w = b - t, r - l
+    if w < 64 * d or h < 16 * d: continue
+    bh = min(28 * d, h - 6 * d); bw = max(bh * 1.9, 46 * d)
+    right = r - min(10 * d, (h - bh) / 2 + 2 * d); cy = t + min(h / 2, 26 * d)
+    print(int(right - bw / 2), int(cy)); break
+")
+  echo "tap show at: $TAP" >> "$OUT/run-notes.txt"
+  if [ -n "$TAP" ]; then
+    adb shell input tap $TAP; sleep 1.5
+    adb exec-out screencap -p > "$OUT/$1-after-show.png"
+    adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 >> "$OUT/run-notes.txt"
+  fi
   # Measured pass without screen recording: with no GPU the video encoder eats the CPU
   # that the app and the shield need, and nothing would behave like on a phone.
   gestures

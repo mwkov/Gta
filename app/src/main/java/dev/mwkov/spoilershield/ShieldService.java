@@ -119,6 +119,13 @@ public class ShieldService extends AccessibilityService {
     // Reader threads: one window each at a time (see Read).
     private ExecutorService readers;
     private final Set<Integer> readingWindows = ConcurrentHashMap.newKeySet();
+    // Texts you tapped "show" on: not covered again while the shield runs.
+    private final Set<String> revealed = ConcurrentHashMap.newKeySet();
+    // Invisible tap targets over each cover's "show" button (the cover layer itself lets
+    // every touch through to the app).
+    private final List<View> showButtons = new ArrayList<>();
+    private final List<Cover> showFor = new ArrayList<>();
+    private final List<Rect> showAt = new ArrayList<>();
     // Where the text sits inside its item (see coverFor), most recent 256.
     private final java.util.LinkedHashMap<String, int[]> textBoxes =
             new java.util.LinkedHashMap<String, int[]>(64, 0.75f, true) {
@@ -158,6 +165,8 @@ public class ShieldService extends AccessibilityService {
         AccessibilityNodeInfo node;   // the matched item (never refreshed itself: copies are)
         int window = -1;         // the window it was read from
         float offX, offY;        // the item's own corner relative to r's corner
+        String words;            // what matched, shown on the cover ("jason")
+        String key;              // the covered text: revealing it is remembered by this
 
         Cover(RectF r, Rect clip, long seq) {
             this.r = r;
@@ -359,6 +368,13 @@ public class ShieldService extends AccessibilityService {
             } catch (RuntimeException ignored) {
             }
         }
+        for (View v : showButtons) {
+            try {
+                wm.removeView(v);
+            } catch (RuntimeException ignored) {
+            }
+        }
+        showButtons.clear();
         overlay = null;
         fingerWatcher = null;
         super.onDestroy();
@@ -979,9 +995,22 @@ public class ShieldService extends AccessibilityService {
                 if (!known) rd.deepAreas.add(new Rect(container));
             }
 
-            if (!node.isEditable() && (matches(p, node.getText())
-                    || matches(p, node.getContentDescription())
-                    || (Build.VERSION.SDK_INT >= 30 && matches(p, node.getStateDescription())))) {
+            CharSequence hitText = null;
+            String words = null;
+            if (!node.isEditable()) {
+                CharSequence[] texts = {node.getText(), node.getContentDescription(),
+                        Build.VERSION.SDK_INT >= 30 ? node.getStateDescription() : null};
+                for (CharSequence t : texts) {
+                    words = matchWords(p, t);
+                    if (words != null) {
+                        hitText = t;
+                        break;
+                    }
+                }
+            }
+            if (words != null) {
+                String key = hitText.toString().trim();
+                if (revealed.contains(key)) return;   // you chose to see this one
                 AccessibilityNodeInfo hit = tightest(node, p, 0);
                 if (trace && rd.found.isEmpty()) {
                     Rect hb = new Rect();
@@ -992,7 +1021,11 @@ public class ShieldService extends AccessibilityService {
                             ? hit.getAvailableExtraData() : null));
                 }
                 Cover c = coverFor(rd, hit, container);
-                if (c != null) rd.found.add(c);
+                if (c != null) {
+                    c.words = words;
+                    c.key = key;
+                    rd.found.add(c);
+                }
                 return; // everything inside is covered already
             }
 
@@ -1032,6 +1065,23 @@ public class ShieldService extends AccessibilityService {
             }
         }
         return node;
+    }
+
+    /** The distinct words that matched ("jason · vice city"), or null for none. */
+    private String matchWords(Pattern p, CharSequence s) {
+        if (s == null || s.length() == 0) return null;
+        java.util.LinkedHashSet<String> got = new java.util.LinkedHashSet<>();
+        try {
+            java.util.regex.Matcher m = p.matcher(new TimedText(s, REGEX_BUDGET_MS));
+            while (m.find() && got.size() < 3) {
+                String w = m.group().trim().toLowerCase(java.util.Locale.ROOT);
+                if (!w.isEmpty()) got.add(w);
+                if (m.end() == m.start() && m.end() >= s.length()) break;
+            }
+        } catch (TimedText.TimeUp e) {
+            regexTimeouts++;
+        }
+        return got.isEmpty() ? null : String.join(" · ", got);
     }
 
     private boolean matches(Pattern p, CharSequence s) {
@@ -1419,10 +1469,91 @@ public class ShieldService extends AccessibilityService {
         return false;
     }
 
+    /**
+     * Puts a tap target over each cover's "show" button, only while nothing moves (moving a
+     * window every frame is costly, and a target must never catch a scroll). At most 8.
+     */
+    private void placeShowButtons(List<Cover> cs, List<Rect> rects) {
+        if (wm == null) return;
+        int n = cs == null ? 0 : Math.min(cs.size(), 8);
+        int hit = Math.round(44 * getResources().getDisplayMetrics().density);
+        for (int i = 0; i < Math.max(n, showButtons.size()); i++) {
+            if (i >= showButtons.size()) {
+                final int idx = i;
+                View v = new View(this);
+                v.setOnClickListener(x -> {
+                    if (idx < showFor.size() && showFor.get(idx) != null) reveal(showFor.get(idx));
+                });
+                WindowManager.LayoutParams lp = buttonParams(hit);
+                try {
+                    wm.addView(v, lp);
+                } catch (RuntimeException e) {
+                    return;
+                }
+                showButtons.add(v);
+                showFor.add(null);
+                showAt.add(new Rect());
+            }
+            View v = showButtons.get(i);
+            WindowManager.LayoutParams lp = (WindowManager.LayoutParams) v.getLayoutParams();
+            Rect want = new Rect();
+            if (i < n) {
+                RectF b = OverlayView.showButton(rects.get(i), getResources().getDisplayMetrics().density);
+                want.set(Math.round(b.centerX() - hit / 2f), Math.round(b.centerY() - hit / 2f), 0, 0);
+                want.right = want.left + hit;
+                want.bottom = want.top + hit;
+                showFor.set(i, cs.get(i));
+            } else {
+                showFor.set(i, null);
+            }
+            if (want.equals(showAt.get(i))) continue;
+            showAt.get(i).set(want);
+            if (want.isEmpty()) {
+                lp.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+                lp.x = -10 * hit;
+            } else {
+                lp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+                lp.x = want.left;
+                lp.y = want.top;
+            }
+            try {
+                wm.updateViewLayout(v, lp);
+            } catch (RuntimeException ignored) {
+            }
+        }
+    }
+
+    private static WindowManager.LayoutParams buttonParams(int size) {
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(size, size,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.START;
+        lp.x = -10 * size;
+        cutout(lp);
+        return lp;
+    }
+
+    /** You tapped "show": uncover it, and don't cover that text again. */
+    private void reveal(Cover c) {
+        if (c.key != null) revealed.add(c.key);
+        List<Cover> next = new ArrayList<>(covers);
+        next.remove(c);
+        covers = next;
+        render();
+    }
+
     private void render() {
         if (overlay == null) return;
         List<Rect> drawn = new ArrayList<>(covers.size());
+        List<Cover> drawnCovers = new ArrayList<>(covers.size());
+        List<String> labels = new ArrayList<>(covers.size());
         List<Rect> plain = new ArrayList<>(2);
+        boolean still = !scrolling;
         if (enabled) {
             long now = SystemClock.uptimeMillis();
             for (Cover c : covers) {
@@ -1431,6 +1562,7 @@ public class ShieldService extends AccessibilityService {
                 // unsure the tracking is right now, so a small error never shows text.
                 for (Tracker t : trackers) {
                     if (!t.busy(now) || !movesWith(c.clip, t.c)) continue;
+                    still = false;
                     // Capped: right after a big correction the error is briefly large, and
                     // stretching by all of it flashed covers the height of the whole list.
                     float lead = Math.max(-MAX_LEAD_PX, Math.min(MAX_LEAD_PX,
@@ -1446,6 +1578,8 @@ public class ShieldService extends AccessibilityService {
                 if (c.clip != null && !r.intersect(c.clip)) continue;
                 if (!screenMain.isEmpty() && !r.intersect(screenMain)) continue;
                 drawn.add(r);
+                drawnCovers.add(c);
+                labels.add(c.words);
             }
             if (edgeCurtain && armed) {
                 for (Tracker t : trackers) {
@@ -1467,7 +1601,8 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
-        overlay.setFrame(drawn, plain);
+        overlay.setFrame(drawn, labels, plain);
+        placeShowButtons(still ? drawnCovers : null, drawn);
         if (trace) {
             StringBuilder sb = new StringBuilder("C ").append(SystemClock.uptimeMillis()).append(' ');
             for (Rect r : drawn) sb.append(r.left).append(',').append(r.top).append(',')
