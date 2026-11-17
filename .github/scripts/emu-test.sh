@@ -109,6 +109,14 @@ run() {   # name activity
   timeout 60 adb pull /sdcard/$1.mp4 "$OUT/$1.mp4"
   mark end
   sleep 3
+  # Recents: the app's card is a picture of the screen; it should be covered.
+  adb shell input keyevent KEYCODE_APP_SWITCH; sleep 3
+  adb exec-out screencap -p > "$OUT/$1-recents.png"
+  timeout 30 adb shell uiautomator dump /sdcard/recents.xml >/dev/null 2>&1; adb pull /sdcard/recents.xml "$OUT/$1-recents.xml" >/dev/null 2>&1
+  adb shell dumpsys window windows | grep -i "Window{.*spoilershield\|mOwnerUid\|mFrame" | head -0
+  adb shell dumpsys window windows | grep -B2 -A8 "spoilershield" | grep "Window{\|mFrame=\|mHasSurface\|flags=" > "$OUT/$1-our-windows.txt"
+  adb shell input keyevent KEYCODE_HOME; sleep 1
+  adb shell am start -n dev.mwkov.shieldtest/.$2 >/dev/null; sleep 4
   # Tap the first cover's "Show" button (same placement as OverlayView.showButton) and check
   # that the cover goes away.
   TAP=$(adb logcat -d -v raw -s ShieldTrace:I | grep '^C [0-9]* [0-9]' | tail -1 | python3 -c "
@@ -131,13 +139,6 @@ for l, t, r, b in rs:
     adb exec-out screencap -p > "$OUT/$1-after-show.png"
     adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 >> "$OUT/run-notes.txt"
   fi
-  # Recents: the app's card is a picture of the screen; it should be covered.
-  adb shell input keyevent KEYCODE_APP_SWITCH; sleep 3
-  adb exec-out screencap -p > "$OUT/$1-recents.png"
-  timeout 30 adb shell uiautomator dump /sdcard/recents.xml >/dev/null 2>&1; adb pull /sdcard/recents.xml "$OUT/$1-recents.xml" >/dev/null 2>&1
-  adb shell dumpsys window windows | grep -i "Window{.*spoilershield\|mOwnerUid\|mFrame" | head -0
-  adb shell dumpsys window windows | grep -B2 -A8 "spoilershield" | grep "Window{\|mFrame=\|mHasSurface\|flags=" > "$OUT/$1-our-windows.txt"
-  adb shell input keyevent KEYCODE_HOME; sleep 1
   adb shell am force-stop dev.mwkov.shieldtest
 }
 
