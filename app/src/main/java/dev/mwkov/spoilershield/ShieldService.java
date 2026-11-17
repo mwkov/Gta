@@ -1798,6 +1798,8 @@ public class ShieldService extends AccessibilityService {
             }
             if (want.equals(showAt.get(i))) continue;
             showAt.get(i).set(want);
+            if (trace) android.util.Log.i("ShieldTrace", "B " + SystemClock.uptimeMillis() + " "
+                    + i + " " + want.toShortString() + " scrolling=" + scrolling);
             if (want.isEmpty()) {
                 lp.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
                 lp.x = -10 * hit;
@@ -1834,6 +1836,7 @@ public class ShieldService extends AccessibilityService {
      */
     private void onShowTap(Cover c) {
         long now = SystemClock.uptimeMillis();
+        if (trace) android.util.Log.i("ShieldTrace", "K " + now + " " + c.key);
         if (confirming == c && now < confirmUntil) {
             confirming = null;
             reveal(c);

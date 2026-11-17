@@ -134,6 +134,9 @@ for l, t, r, b in rs:
   # Recents: the app's card is a picture of the screen; it should be covered.
   adb shell input keyevent KEYCODE_APP_SWITCH; sleep 3
   adb exec-out screencap -p > "$OUT/$1-recents.png"
+  timeout 30 adb shell uiautomator dump /sdcard/recents.xml >/dev/null 2>&1; adb pull /sdcard/recents.xml "$OUT/$1-recents.xml" >/dev/null 2>&1
+  adb shell dumpsys window windows | grep -i "Window{.*spoilershield\|mOwnerUid\|mFrame" | head -0
+  adb shell dumpsys window windows | grep -B2 -A8 "spoilershield" | grep "Window{\|mFrame=\|mHasSurface\|flags=" > "$OUT/$1-our-windows.txt"
   adb shell input keyevent KEYCODE_HOME; sleep 1
   adb shell am force-stop dev.mwkov.shieldtest
 }
