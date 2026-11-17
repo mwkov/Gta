@@ -36,6 +36,7 @@ final class OverlayView extends View {
     private final RectF rf = new RectF();
     private final float density;
     private String debugText;
+    private int confirming = -1;   // cover whose Show was tapped once
 
     OverlayView(Context c) {
         super(c);
@@ -72,6 +73,12 @@ final class OverlayView extends View {
         covers = next;
         words = nextWords;
         plain = nextPlain;
+        invalidate();
+    }
+
+    void setConfirming(int index) {
+        if (index == confirming) return;
+        confirming = index;
         invalidate();
     }
 
@@ -114,11 +121,11 @@ final class OverlayView extends View {
         }
         for (int i = 0; i < covers.size(); i++) {
             Rect r = covers.get(i);
-            drawCover(canvas, r, i < words.size() ? words.get(i) : null);
+            drawCover(canvas, r, i < words.size() ? words.get(i) : null, i == confirming);
         }
     }
 
-    private void drawCover(Canvas canvas, Rect r, String what) {
+    private void drawCover(Canvas canvas, Rect r, String what, boolean confirm) {
         float ox = -loc[0], oy = -loc[1];
         rf.set(r.left + ox, r.top + oy, r.right + ox, r.bottom + oy);
         float h = rf.height();
@@ -134,10 +141,12 @@ final class OverlayView extends View {
         if (!btn.isEmpty()) {
             btn.offset(ox, oy);
             float br = btn.height() / 2;
+            btnFill.setColor(confirm ? 0xFF6D4BD1 : 0xFF2C2342);
+            btnText.setColor(confirm ? 0xFFFFFFFF : 0xFFC9B6FF);
             canvas.drawRoundRect(btn, br, br, btnFill);
             btnText.setTextSize(Math.min(12 * density, btn.height() * 0.48f));
             float ty = btn.centerY() - (btnText.descent() + btnText.ascent()) / 2;
-            canvas.drawText("Show", btn.centerX(), ty, btnText);
+            canvas.drawText(confirm ? "Sure?" : "Show", btn.centerX(), ty, btnText);
             textRight = btn.left - 8 * density;
         }
 

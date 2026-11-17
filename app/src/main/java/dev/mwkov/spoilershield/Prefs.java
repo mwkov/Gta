@@ -18,7 +18,8 @@ final class Prefs {
     static final String KEY_SCROLL_BLACKOUT = "scroll_blackout";
     static final String KEY_DEBUG = "debug";
     static final String KEY_TRACE = "trace";
-    static final String KEY_DUMP_AT = "dump_at";   // wall-clock ms: save a screen dump then
+    static final String KEY_DUMP_AT = "dump_at";
+    static final String KEY_REHIDE_AT = "rehide_at";   // wall-clock ms: save a screen dump then
 
     static final String DEFAULT_PATTERN =
             "gta|grand theft auto|rockstar|leonida|vice city|port gellhorn|grassrivers|mount kalaga"

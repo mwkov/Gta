@@ -126,6 +126,8 @@ public class ShieldService extends AccessibilityService {
     private final List<View> showButtons = new ArrayList<>();
     private final List<Cover> showFor = new ArrayList<>();
     private final List<Rect> showAt = new ArrayList<>();
+    private Cover confirming;    // first tap on its Show button, waiting for the second
+    private long confirmUntil;
     // Where the text sits inside its item (see coverFor), most recent 256.
     private final java.util.LinkedHashMap<String, int[]> textBoxes =
             new java.util.LinkedHashMap<String, int[]>(64, 0.75f, true) {
@@ -237,6 +239,11 @@ public class ShieldService extends AccessibilityService {
 
     private final SharedPreferences.OnSharedPreferenceChangeListener prefListener =
             (p, key) -> {
+                if (Prefs.KEY_REHIDE_AT.equals(key)) {
+                    revealed.clear();   // "cover again everything I tapped Show on"
+                    scheduleScan(0);
+                    return;
+                }
                 if (Prefs.KEY_DUMP_AT.equals(key)) {
                     long at = p.getLong(Prefs.KEY_DUMP_AT, 0);
                     long wait = at - System.currentTimeMillis();
@@ -1600,7 +1607,7 @@ public class ShieldService extends AccessibilityService {
                 final int idx = i;
                 View v = new View(this);
                 v.setOnClickListener(x -> {
-                    if (idx < showFor.size() && showFor.get(idx) != null) reveal(showFor.get(idx));
+                    if (idx < showFor.size() && showFor.get(idx) != null) onShowTap(showFor.get(idx));
                 });
                 WindowManager.LayoutParams lp = buttonParams(hit);
                 try {
@@ -1656,7 +1663,29 @@ public class ShieldService extends AccessibilityService {
         return lp;
     }
 
-    /** You tapped "show": uncover it, and don't cover that text again. */
+    /**
+     * "Show" needs two taps (the second within 3 s): the button sits on top of the app, and a
+     * tap meant for the app underneath (a menu, a reply button) must never uncover a spoiler.
+     */
+    private void onShowTap(Cover c) {
+        long now = SystemClock.uptimeMillis();
+        if (confirming == c && now < confirmUntil) {
+            confirming = null;
+            reveal(c);
+            return;
+        }
+        confirming = c;
+        confirmUntil = now + 3000;
+        render();
+        main.postDelayed(() -> {
+            if (confirming == c && SystemClock.uptimeMillis() >= confirmUntil) {
+                confirming = null;
+                render();
+            }
+        }, 3050);
+    }
+
+    /** You confirmed "show": uncover it, and don't cover that text again. */
     private void reveal(Cover c) {
         if (c.key != null) revealed.add(c.key);
         List<Cover> next = new ArrayList<>(covers);
@@ -1719,6 +1748,7 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
+        overlay.setConfirming(drawnCovers.indexOf(confirming));
         overlay.setFrame(drawn, labels, plain);
         placeShowButtons(still ? drawnCovers : null, drawn);
         if (trace) {
@@ -1741,7 +1771,7 @@ public class ShieldService extends AccessibilityService {
             }
             overlay.setDebug(dbgScan + "\n" + dbgScroll + "\n" + dbgPoll + "\ntracking "
                     + moving + "/" + trackers.size() + " v=" + Math.round(v * 1000)
-                    + "px/s armed=" + (armed ? "Y" : "N")
+                    + "px/s armed=" + (armed ? "Y" : "N") + " shown=" + revealed.size()
                     + (regexTimeouts > 0 ? " regex-timeouts=" + regexTimeouts : ""));
         } else {
             overlay.setDebug(null);

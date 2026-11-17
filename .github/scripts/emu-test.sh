@@ -125,6 +125,8 @@ for l, t, r, b in rs:
 ")
   echo "tap show at: $TAP" >> "$OUT/run-notes.txt"
   if [ -n "$TAP" ]; then
+    adb shell input tap $TAP; sleep 0.6
+    adb exec-out screencap -p > "$OUT/$1-sure.png"
     adb shell input tap $TAP; sleep 1.5
     adb exec-out screencap -p > "$OUT/$1-after-show.png"
     adb logcat -d -v raw -s ShieldTrace:I | grep '^C ' | tail -1 >> "$OUT/run-notes.txt"

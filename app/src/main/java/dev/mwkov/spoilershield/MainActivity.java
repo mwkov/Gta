@@ -119,6 +119,17 @@ public class MainActivity extends Activity {
             android.widget.Toast.makeText(this, "Go to the screen with the missed text now. "
                     + "Saving to Downloads in 8 seconds.", android.widget.Toast.LENGTH_LONG).show();
         });
+        Button rehide = button("Cover again everything I tapped Show on");
+        rehide.setOnClickListener(v -> {
+            Prefs.get(this).edit()
+                    .putLong(Prefs.KEY_REHIDE_AT, System.currentTimeMillis()).apply();
+            android.widget.Toast.makeText(this, "Everything you uncovered is covered again.",
+                    android.widget.Toast.LENGTH_SHORT).show();
+        });
+        switches.addView(rehide, matchWrap(dp(10)));
+        switches.addView(text("Show needs two taps (Show, then Sure?) so a tap meant for the app "
+                + "can't uncover anything. Uncovered text stays uncovered until this button or "
+                + "a restart of the shield.", 12, MUTED));
         switches.addView(dump, matchWrap(dp(10)));
         switches.addView(text("For text that isn't covered: saves every piece of text the shield "
                 + "can read on that screen to a file in Downloads, to send for a fix.", 12, MUTED));
