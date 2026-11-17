@@ -1315,12 +1315,15 @@ public class ShieldService extends AccessibilityService {
         Rect r = new Rect();
         node.getBoundsInScreen(r);
         if (r.isEmpty() || rd.screen.isEmpty()) return null;
-        int labelH = r.height();
         long screenArea = (long) rd.screen.width() * rd.screen.height();
-        // The name is on the card's header: go up to the card (picture + header).
+        int cardH = rd.screen.height() / 5;
+        // Either this is the card itself (its description is the app name: Pixel-style), or
+        // the name sits on the card's header: go up to the card (picture + header).
+        int labelH = Math.min(r.height(), cardH / 4);
         AccessibilityNodeInfo cur = node;
         Rect b = new Rect(r);
-        for (int i = 0; i < 5 && b.height() < Math.max(4 * labelH, rd.screen.height() / 5); i++) {
+        if ((long) r.width() * r.height() > screenArea * 0.8) return null;
+        for (int i = 0; i < 5 && b.height() < Math.max(4 * labelH, cardH); i++) {
             AccessibilityNodeInfo parent = cur.getParent();
             if (parent == null) break;
             Rect pb = new Rect();
@@ -1837,7 +1840,8 @@ public class ShieldService extends AccessibilityService {
     private void onShowTap(Cover c) {
         long now = SystemClock.uptimeMillis();
         if (trace) android.util.Log.i("ShieldTrace", "K " + now + " " + c.key);
-        if (confirming == c && now < confirmUntil) {
+        // (By what it covers: a read in between may have replaced the cover object.)
+        if (confirming != null && now < confirmUntil && same(confirming, c)) {
             confirming = null;
             reveal(c);
             return;
@@ -1846,18 +1850,29 @@ public class ShieldService extends AccessibilityService {
         confirmUntil = now + 3000;
         render();
         main.postDelayed(() -> {
-            if (confirming == c && SystemClock.uptimeMillis() >= confirmUntil) {
+            if (confirming != null && same(confirming, c)
+                    && SystemClock.uptimeMillis() >= confirmUntil) {
                 confirming = null;
                 render();
             }
         }, 3050);
     }
 
+    private static boolean same(Cover a, Cover b) {
+        return a == b || (a.key != null && a.key.equals(b.key));
+    }
+
+    private int confirmingIndex(List<Cover> drawn) {
+        if (confirming == null) return -1;
+        for (int i = 0; i < drawn.size(); i++) if (same(drawn.get(i), confirming)) return i;
+        return -1;
+    }
+
     /** You confirmed "show": uncover it, and don't cover that text again. */
     private void reveal(Cover c) {
         if (c.key != null) revealed.add(c.key);
-        List<Cover> next = new ArrayList<>(covers);
-        next.remove(c);
+        List<Cover> next = new ArrayList<>();
+        for (Cover o : covers) if (!same(o, c)) next.add(o);
         covers = next;
         render();
     }
@@ -1924,7 +1939,7 @@ public class ShieldService extends AccessibilityService {
                 }
             }
         }
-        overlay.setConfirming(drawnCovers.indexOf(confirming));
+        overlay.setConfirming(confirmingIndex(drawnCovers));
         overlay.setFrame(drawn, labels, plain);
         placeShowButtons(still ? drawnCovers : null, drawn);
         if (trace) {
