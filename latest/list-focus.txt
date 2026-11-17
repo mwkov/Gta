@@ -1,2 +1,1 @@
-  mCurrentFocus=Window{1a7e0f4 u0 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}
-  mCurrentFocus=Window{9d5e0d5 u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity}
+  mCurrentFocus=Window{46405de u0 dev.mwkov.shieldtest/dev.mwkov.shieldtest.ListActivity}
