@@ -240,8 +240,9 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Default keywords restored", Toast.LENGTH_SHORT).show();
         });
 
-        col.addView(text("Can't see text inside images or videos. Everything runs on your phone; "
-                + "nothing is saved or sent.", 12, MUTED), matchWrap(dp(18)));
+        col.addView(text("Can't see text inside images or videos. What's on your screen never "
+                + "leaves your phone; the only thing the app fetches is the update check.",
+                12, MUTED), matchWrap(dp(18)));
 
         setContentView(scroll);
     }

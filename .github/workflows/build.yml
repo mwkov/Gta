@@ -37,11 +37,28 @@ jobs:
           name: SpoilerShield-apk
           path: out/SpoilerShield.apk
 
-      - name: Publish as a release (easy download on the phone)
+      - name: New version? (releases are made only when the version number changes)
+        id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NAME=$(grep -m1 versionName app/build.gradle | sed "s/.*'\(.*\)'.*/\1/")
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          if gh release view "v$NAME" -R "${{ github.repository }}" > /dev/null 2>&1; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish the release (the app's Update button downloads it from here)
+        if: steps.rel.outputs.new == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Spoiler Shield build ${{ github.run_number }}
+          tag_name: v${{ steps.rel.outputs.name }}
+          name: Spoiler Shield ${{ steps.rel.outputs.name }}
+          body: |
+            Already installed? Open Spoiler Shield and tap **Update now**.
+            New here? Download **SpoilerShield.apk** below on your phone and open it.
           files: |
             out/SpoilerShield.apk
             out/version.txt
