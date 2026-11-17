@@ -237,6 +237,14 @@ public class ShieldService extends AccessibilityService {
 
     private final SharedPreferences.OnSharedPreferenceChangeListener prefListener =
             (p, key) -> {
+                if (Prefs.KEY_DUMP_AT.equals(key)) {
+                    long at = p.getLong(Prefs.KEY_DUMP_AT, 0);
+                    long wait = at - System.currentTimeMillis();
+                    if (scanHandler != null && wait > -2000) {
+                        scanHandler.postDelayed(this::saveDump, Math.max(0, wait));
+                    }
+                    return;
+                }
                 loadPrefs();
                 if (!enabled) resetTracking();
                 scheduleScan(0);
@@ -999,7 +1007,9 @@ public class ShieldService extends AccessibilityService {
             String words = null;
             if (!node.isEditable()) {
                 CharSequence[] texts = {node.getText(), node.getContentDescription(),
-                        Build.VERSION.SDK_INT >= 30 ? node.getStateDescription() : null};
+                        Build.VERSION.SDK_INT >= 30 ? node.getStateDescription() : null,
+                        node.getHintText(),
+                        Build.VERSION.SDK_INT >= 28 ? node.getTooltipText() : null};
                 for (CharSequence t : texts) {
                     words = matchWords(p, t);
                     if (words != null) {
@@ -1065,6 +1075,114 @@ public class ShieldService extends AccessibilityService {
             }
         }
         return node;
+    }
+
+    // =====================================================================
+    // Screen dump (settings button): everything readable, to diagnose missed text
+    // =====================================================================
+
+    private void saveDump() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Spoiler Shield ").append(BuildConfigVersion()).append(" dump ")
+                .append(new java.util.Date()).append('\n');
+        Pattern p = pattern;
+        int[] count = {0};
+        List<AccessibilityWindowInfo> ws;
+        try {
+            ws = getWindows();
+        } catch (RuntimeException e) {
+            ws = new ArrayList<>();
+        }
+        for (AccessibilityWindowInfo w : ws) {
+            Rect b = new Rect();
+            w.getBoundsInScreen(b);
+            sb.append("\n=== window ").append(w.getId()).append(" type=").append(w.getType())
+                    .append(" title=").append(w.getTitle()).append(' ').append(b.toShortString())
+                    .append('\n');
+            AccessibilityNodeInfo root = rootOf(w);
+            if (root != null) dumpNode(sb, root, p, 0, count);
+        }
+        String name = "spoiler-shield-dump-" + new java.text.SimpleDateFormat("HHmmss",
+                java.util.Locale.ROOT).format(new java.util.Date()) + ".txt";
+        String where;
+        try {
+            byte[] data = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            if (Build.VERSION.SDK_INT >= 29) {
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name);
+                v.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
+                android.net.Uri uri = getContentResolver().insert(
+                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                try (java.io.OutputStream o = getContentResolver().openOutputStream(uri)) {
+                    o.write(data);
+                }
+                where = "Downloads/" + name;
+            } else {
+                java.io.File f = new java.io.File(getExternalFilesDir(null), name);
+                try (java.io.FileOutputStream o = new java.io.FileOutputStream(f)) {
+                    o.write(data);
+                }
+                where = f.getPath();
+            }
+        } catch (Exception e) {
+            where = null;
+        }
+        final String msg = where != null ? "Saved " + where + " (" + count[0] + " items)"
+                : "Couldn't save the dump";
+        main.post(() -> android.widget.Toast.makeText(this, msg,
+                android.widget.Toast.LENGTH_LONG).show());
+    }
+
+    private String BuildConfigVersion() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "?";
+        }
+    }
+
+    private void dumpNode(StringBuilder sb, AccessibilityNodeInfo n, Pattern p, int depth,
+            int[] count) {
+        if (n == null || depth > 80 || count[0] >= 5000) return;
+        count[0]++;
+        try {
+            Rect b = new Rect();
+            n.getBoundsInScreen(b);
+            for (int i = 0; i < depth; i++) sb.append(' ');
+            CharSequence cls = n.getClassName();
+            sb.append(cls == null ? "?" : cls.toString().substring(cls.toString().lastIndexOf('.') + 1))
+                    .append(' ').append(b.toShortString());
+            if (!n.isVisibleToUser()) sb.append(" INVISIBLE");
+            if (n.isScrollable()) sb.append(" SCROLLABLE");
+            if (n.isEditable()) sb.append(" EDITABLE");
+            if (n.getViewIdResourceName() != null) sb.append(" id=").append(n.getViewIdResourceName());
+            field(sb, "text", n.getText(), p);
+            field(sb, "desc", n.getContentDescription(), p);
+            field(sb, "hint", n.getHintText(), p);
+            if (Build.VERSION.SDK_INT >= 28) {
+                field(sb, "tooltip", n.getTooltipText(), p);
+                field(sb, "pane", n.getPaneTitle(), p);
+            }
+            if (Build.VERSION.SDK_INT >= 30) field(sb, "state", n.getStateDescription(), p);
+            android.os.Bundle x = n.getExtras();
+            if (x != null && !x.isEmpty()) sb.append(" extras=").append(bundleText(x));
+            List<String> ed = n.getAvailableExtraData();
+            if (ed != null && !ed.isEmpty()) sb.append(" extraData=").append(ed);
+            sb.append(" children=").append(n.getChildCount()).append('\n');
+            for (int i = 0; i < n.getChildCount(); i++) {
+                dumpNode(sb, n.getChild(i), p, depth + 1, count);
+            }
+        } catch (RuntimeException e) {
+            sb.append(" ERROR ").append(e).append('\n');
+        }
+    }
+
+    private void field(StringBuilder sb, String name, CharSequence v, Pattern p) {
+        if (v == null || v.length() == 0) return;
+        String s = v.toString().replace('\n', ' ');
+        if (s.length() > 300) s = s.substring(0, 300) + "...";
+        sb.append(' ').append(name).append("=\"").append(s).append('"');
+        if (p != null && matchWords(p, v) != null) sb.append(" <MATCH>");
     }
 
     /** The distinct words that matched ("jason · vice city"), or null for none. */
