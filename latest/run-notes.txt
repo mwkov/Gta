@@ -1,4 +1,4 @@
-tap show at: 387 723
-C 181876  P 
-tap show at: 472 162
-C 257098  P 
+tap show at: 470 201
+C 152688  P 
+tap show at: 472 542
+C 223585  P 
